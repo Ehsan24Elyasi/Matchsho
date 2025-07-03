@@ -271,7 +271,8 @@ const saveUserInfo = async () => {
     const name = sanitizeInput(document.getElementById('register-name').value.trim());
     const className = sanitizeInput(document.getElementById('register-class').value.trim());
     const studentId = sanitizeInput(document.getElementById('register-student-id').value.trim());
-    const gender = document.getElementById('register-gender').value;
+    const genderMap = { 'مرد': 'male', 'زن': 'female' };
+    const gender = genderMap[document.getElementById('register-gender').value] || document.getElementById('register-gender').value;
 
     if (!email || !password || !confirmPassword || !name || !className || !studentId || !gender) {
         showError('missing_fields', 'signup');
@@ -363,7 +364,7 @@ const saveQuizResults = async () => {
             body: JSON.stringify(answers)
         });
         if (!response.ok) throw new Error('Failed to save answers');
-        navigateTo('roommates'); // به صفحه هم‌اتاقی‌های پیشنهادی می‌رود
+        navigateTo('roommates');
         updateProfilePage();
         updateRoomCapacity();
         displaySuggestedRoommates();
@@ -410,7 +411,10 @@ const updateProfilePage = async () => {
 const updateRoomCapacity = async () => {
     if (!currentUser) return;
     try {
-        const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`);
+        const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
         if (!response.ok) throw new Error('Room not found');
         const room = await response.json();
         const capacityBar = document.getElementById('capacity-bar');
@@ -435,10 +439,9 @@ const updateRoomCapacity = async () => {
         } else {
             const matchPromises = roommates.map(async (roommate) => {
                 if (roommate.user && roommate.user.id !== currentUser.id) {
-                    const matchResponse = await fetch(`${API_BASE_URL}/matches/${currentUser.id}`);
-                    const matches = await matchResponse.json();
-                    const match = matches.find(m => m.user.id === roommate.user.id);
-                    const matchPercentage = match ? match.match_percentage : 0;
+                    const matchResponse = await fetch(`${API_BASE_URL}/match_percentage/${currentUser.id}/${roommate.user.id}`);
+                    if (!matchResponse.ok) throw new Error('Failed to fetch match percentage');
+                    const matchPercentage = await matchResponse.json();
 
                     return {
                         user: roommate.user,

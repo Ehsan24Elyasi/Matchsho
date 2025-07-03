@@ -5,15 +5,23 @@ from database import Base, engine, get_db, SessionLocal
 from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel
 from schemas import UserCreate, User, RoomCreate, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse
 from typing import List
-import math
+import os
 
 app = FastAPI()
 
+# تنظیمات CORS با پشتیبانی کامل از localhost و 127.0.0.1
+origins = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5500", "http://127.0.0.1:5500"],  # شامل هر دو آدرس
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -76,10 +84,22 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="کاربر یافت نشد")
     return user
 
+@app.get("/answers/", response_model=List[Answer])
+def get_answers(user_id: int, db: Session = Depends(get_db)):
+    answers = db.query(AnswerModel).filter(AnswerModel.user_id == user_id).all()
+    if not answers:
+        raise HTTPException(status_code=404, detail="پاسخی برای کاربر یافت نشد")
+    return answers
+
 @app.post("/answers/", response_model=List[Answer])
 def save_answers(answers: List[AnswerBase], db: Session = Depends(get_db)):
     db_answers = []
+    valid_room_sizes = [2, 4, 8, 12]
     for answer in answers:
+        if answer.question_id in [1, 2, 3, 4, 5, 6] and answer.value not in range(1, 6):
+            raise HTTPException(status_code=400, detail=f"مقدار پاسخ برای سؤال {answer.question_id} باید بین 1 و 5 باشد")
+        if answer.question_id == 7 and answer.value not in valid_room_sizes:
+            raise HTTPException(status_code=400, detail=f"مقدار پاسخ برای اندازه اتاق باید یکی از {valid_room_sizes} باشد")
         db_answer = AnswerModel(**answer.dict())
         db.add(db_answer)
         db_answers.append(db_answer)
@@ -136,20 +156,28 @@ def get_matches(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="کاربر یافت نشد")
     user_answers = db.query(AnswerModel).filter(AnswerModel.user_id == user_id).all()
-    if not user_answers:
+    if len(user_answers) < 7:
         raise HTTPException(status_code=400, detail="کاربر تست را کامل نکرده است")
     
     matches = []
     potential_users = db.query(UserModel).filter(UserModel.id != user_id, UserModel.gender == user.gender).all()
     for potential_user in potential_users:
         potential_answers = db.query(AnswerModel).filter(AnswerModel.user_id == potential_user.id).all()
-        if potential_answers:
+        if len(potential_answers) == 7:
             match_percentage = calculate_match_percentage(user_answers, potential_answers)
             if match_percentage > 50:
                 matches.append(MatchResponse(user=potential_user, match_percentage=match_percentage))
     
     matches.sort(key=lambda x: x.match_percentage, reverse=True)
     return matches[:4]
+
+@app.get("/match_percentage/{user1_id}/{user2_id}", response_model=float)
+def get_match_percentage(user1_id: int, user2_id: int, db: Session = Depends(get_db)):
+    user1_answers = db.query(AnswerModel).filter(AnswerModel.user_id == user1_id).all()
+    user2_answers = db.query(AnswerModel).filter(AnswerModel.user_id == user2_id).all()
+    if len(user1_answers) < 7 or len(user2_answers) < 7:
+        raise HTTPException(status_code=400, detail="پاسخ‌های کافی برای محاسبه تطابق وجود ندارد")
+    return calculate_match_percentage(user1_answers, user2_answers)
 
 def calculate_match_percentage(user_answers: List[AnswerModel], potential_answers: List[AnswerModel]):
     criteria = [1, 2, 3, 4, 5, 6]  # Question IDs for hygiene, socializing, smoking, noise, beliefs, sleep
