@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 
 class UserBase(BaseModel):
-    name: str
     email: str
+    name: str
     class_name: str
     student_id: str
     gender: str
@@ -13,21 +13,20 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class RoomBase(BaseModel):
     capacity: int
-
-class RoomCreate(RoomBase):
     owner_id: int
 
 class Room(RoomBase):
     id: int
-    owner_id: int
-    roommates: List["User"] = []
+    roommates: List["Roommate"] = []
+
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class RoommateBase(BaseModel):
     user_id: int
@@ -35,17 +34,17 @@ class RoommateBase(BaseModel):
 
 class Roommate(RoommateBase):
     id: int
-    user: User
-    class Config:
-        from_attributes = True
+    user: User = None
 
-class QuestionBase(BaseModel):
+    class Config:
+        orm_mode = True
+
+class Question(BaseModel):
+    id: int
     text: str
 
-class Question(QuestionBase):
-    id: int
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class AnswerBase(BaseModel):
     user_id: int
@@ -54,8 +53,9 @@ class AnswerBase(BaseModel):
 
 class Answer(AnswerBase):
     id: int
+
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class LoginRequest(BaseModel):
     email: str
@@ -64,3 +64,6 @@ class LoginRequest(BaseModel):
 class MatchResponse(BaseModel):
     user: User
     match_percentage: float
+
+    class Config:
+        orm_mode = True

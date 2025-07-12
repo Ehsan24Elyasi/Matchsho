@@ -49,7 +49,9 @@ const translations = {
             invalid_login: 'ایمیل یا رمز عبور اشتباه است!',
             user_not_found: 'کاربر یافت نشد!',
             room_full: 'اتاق پر است!',
-            quiz_incomplete: 'لطفاً به تمام سوالات پاسخ دهید!'
+            quiz_incomplete: 'لطفاً به تمام سوالات پاسخ دهید!',
+            server_error: 'خطای سرور رخ داد، لطفاً دوباره تلاش کنید!',
+            no_matches: 'هیچ هم‌اتاقی پیشنهادی یافت نشد یا خطای سرور رخ داد!'
         }
     },
     en: {
@@ -93,7 +95,9 @@ const translations = {
             invalid_login: 'Incorrect email or password!',
             user_not_found: 'User not found!',
             room_full: 'Room is full!',
-            quiz_incomplete: 'Please answer all questions!'
+            quiz_incomplete: 'Please answer all questions!',
+            server_error: 'Server error occurred, please try again!',
+            no_matches: 'No suggested roommates found or server error occurred!'
         }
     }
 };
@@ -115,7 +119,7 @@ const debounce = (func, wait) => {
 const showError = (errorKey, sectionId = 'signup') => {
     const errorDiv = document.getElementById(sectionId + '-error');
     if (errorDiv) {
-        errorDiv.textContent = translations[currentLang].errors[errorKey] || translations[currentLang].errors.missing_fields;
+        errorDiv.textContent = translations[currentLang].errors[errorKey] || translations[currentLang].errors.server_error;
         errorDiv.classList.remove('hidden');
         setTimeout(() => errorDiv.classList.add('hidden'), 3000);
         announceChange(errorDiv.textContent);
@@ -129,6 +133,18 @@ const announceChange = (message) => {
     liveRegion.textContent = message;
     document.body.appendChild(liveRegion);
     setTimeout(() => liveRegion.remove(), 1000);
+};
+
+const showLoading = () => {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading';
+    loadingDiv.innerHTML = '<p class="text-center font-fa">در حال بارگذاری...</p>';
+    document.body.appendChild(loadingDiv);
+};
+
+const hideLoading = () => {
+    const loadingDiv = document.getElementById('loading');
+    if (loadingDiv) loadingDiv.remove();
 };
 
 const updateLanguage = () => {
@@ -244,14 +260,15 @@ const handleLogin = async () => {
     const password = sanitizeInput(document.getElementById('login-password').value.trim());
 
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Login failed');
         }
         currentUser = await response.json();
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -260,7 +277,10 @@ const handleLogin = async () => {
         updateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
+        console.error('Login error:', error.message);
         showError('invalid_login', 'login');
+    } finally {
+        hideLoading();
     }
 };
 
@@ -285,6 +305,7 @@ const saveUserInfo = async () => {
     }
 
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/users/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -298,51 +319,72 @@ const saveUserInfo = async () => {
             })
         });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Signup failed');
         }
         currentUser = await response.json();
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         navigateTo('quiz');
         loadQuizQuestions();
     } catch (error) {
+        console.error('Signup error:', error.message);
         showError(error.message.includes('ایمیل') ? 'email_exists' : 'missing_fields', 'signup');
+    } finally {
+        hideLoading();
     }
 };
 
 const loadQuizQuestions = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/questions/`);
-        if (!response.ok) throw new Error('Failed to load questions');
-        const questions = await response.json();
-        const quizDiv = document.getElementById('quiz-questions');
-        quizDiv.innerHTML = '';
-        questions.forEach((q, index) => {
-            const questionId = q.id;
-            const isRoomSize = questionId === 7; // Room size question
-            const options = isRoomSize ? [2, 4, 8, 12] : [1, 2, 3, 4, 5];
-            const fieldName = isRoomSize ? 'room_size' : `question_${questionId}`;
-            const html = `
-                <div class="mb-6">
-                    <label class="block text-gray-700 font-fa">${sanitizeInput(q.text)}</label>
-                    <div class="flex space-x-2 mt-2">
-                        ${options.map(value => `
-                            <input type="radio" name="${fieldName}" id="${fieldName}_${value}" value="${value}" class="hidden">
-                            <label for="${fieldName}_${value}" class="flex-1 p-2 border rounded-lg text-center cursor-pointer font-fa">${value}</label>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            quizDiv.insertAdjacentHTML('beforeend', html);
-        });
-    } catch (error) {
-        showError('quiz_incomplete', 'quiz');
+    const cachedQuestions = localStorage.getItem('questions');
+    if (cachedQuestions) {
+        const questions = JSON.parse(cachedQuestions);
+        renderQuestions(questions);
+        return;
     }
+    try {
+        showLoading();
+        const response = await fetch(`${API_BASE_URL}/questions/`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to load questions');
+        }
+        const questions = await response.json();
+        localStorage.setItem('questions', JSON.stringify(questions));
+        renderQuestions(questions);
+    } catch (error) {
+        console.error('Quiz questions error:', error.message);
+        showError('quiz_incomplete', 'quiz');
+    } finally {
+        hideLoading();
+    }
+};
+
+const renderQuestions = (questions) => {
+    const quizDiv = document.getElementById('quiz-questions');
+    quizDiv.innerHTML = '';
+    questions.forEach((q, index) => {
+        const questionId = q.id;
+        const isRoomSize = questionId === 7;
+        const options = isRoomSize ? [2, 4, 8, 12] : [1, 2, 3, 4, 5];
+        const fieldName = isRoomSize ? 'room_size' : `question_${questionId}`;
+        const html = `
+            <div class="mb-6">
+                <label class="block text-gray-700 font-fa">${sanitizeInput(q.text)}</label>
+                <div class="flex space-x-2 mt-2">
+                    ${options.map(value => `
+                        <input type="radio" name="${fieldName}" id="${fieldName}_${value}" value="${value}" class="hidden">
+                        <label for="${fieldName}_${value}" class="flex-1 p-2 border rounded-lg text-center cursor-pointer font-fa">${value}</label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        quizDiv.insertAdjacentHTML('beforeend', html);
+    });
 };
 
 const saveQuizResults = async () => {
     const answers = [];
-    const questionIds = [1, 2, 3, 4, 5, 6, 7]; // Assuming question IDs from 1 to 7
+    const questionIds = [1, 2, 3, 4, 5, 6, 7];
     for (const qid of questionIds) {
         const fieldName = qid === 7 ? 'room_size' : `question_${qid}`;
         const value = document.querySelector(`input[name="${fieldName}"]:checked`)?.value;
@@ -358,29 +400,43 @@ const saveQuizResults = async () => {
     }
 
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/answers/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(answers)
         });
-        if (!response.ok) throw new Error('Failed to save answers');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to save answers');
+        }
         navigateTo('roommates');
         updateProfilePage();
         updateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
+        console.error('Save quiz error:', error.message);
         showError('quiz_incomplete', 'quiz');
+    } finally {
+        hideLoading();
     }
 };
 
 const updateProfilePage = async () => {
     if (!currentUser) return;
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/users/${currentUser.id}`);
-        if (!response.ok) throw new Error('User not found');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'User not found');
+        }
         const user = await response.json();
         const answersResponse = await fetch(`${API_BASE_URL}/answers/?user_id=${currentUser.id}`);
-        if (!answersResponse.ok) throw new Error('Answers not found');
+        if (!answersResponse.ok) {
+            const errorData = await answersResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Answers not found');
+        }
         const answers = await answersResponse.json();
 
         const fields = {
@@ -404,18 +460,25 @@ const updateProfilePage = async () => {
 
         announceChange(translations[currentLang].profile_updated);
     } catch (error) {
+        console.error('Profile update error:', error.message);
         showError('user_not_found', 'profile');
+    } finally {
+        hideLoading();
     }
 };
 
 const updateRoomCapacity = async () => {
     if (!currentUser) return;
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        if (!response.ok) throw new Error('Room not found');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Room not found');
+        }
         const room = await response.json();
         const capacityBar = document.getElementById('capacity-bar');
         const capacityText = document.getElementById('capacity-text');
@@ -430,7 +493,7 @@ const updateRoomCapacity = async () => {
         const capacity = room.capacity || 1;
         const percentage = (roommates.length / capacity) * 100;
 
-        capacityBar.setAttribute('width', `${percentage}%`);
+        capacityBar.style.width = `${percentage}%`;
         capacityText.textContent = `${roommates.length} از ${capacity} نفر`;
 
         currentRoommatesDiv.innerHTML = '';
@@ -440,7 +503,10 @@ const updateRoomCapacity = async () => {
             const matchPromises = roommates.map(async (roommate) => {
                 if (roommate.user && roommate.user.id !== currentUser.id) {
                     const matchResponse = await fetch(`${API_BASE_URL}/match_percentage/${currentUser.id}/${roommate.user.id}`);
-                    if (!matchResponse.ok) throw new Error('Failed to fetch match percentage');
+                    if (!matchResponse.ok) {
+                        const errorData = await matchResponse.json().catch(() => ({}));
+                        throw new Error(errorData.detail || 'Failed to fetch match percentage');
+                    }
                     const matchPercentage = await matchResponse.json();
 
                     return {
@@ -478,19 +544,35 @@ const updateRoomCapacity = async () => {
 
         announceChange(translations[currentLang].room_capacity_updated || 'Room capacity updated');
     } catch (error) {
+        console.error('Room capacity error:', error.message);
         showError('user_not_found', 'home');
-        const currentRoommatesDiv = document.getElementById('current-roommates');
-        if (currentRoommatesDiv) currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">خطا در بارگذاری هم‌اتاقی‌ها.</p>';
+        currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">خطا در بارگذاری هم‌اتاقی‌ها.</p>';
+    } finally {
+        hideLoading();
     }
 };
 
 const displaySuggestedRoommates = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.id) {
+        console.error('No valid currentUser found');
+        showError('user_not_found', 'roommates');
+        return;
+    }
+    showLoading();
     try {
+        console.log(`Fetching matches for user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/matches/${currentUser.id}`);
-        if (!response.ok) throw new Error('No matches found');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to fetch matches');
+        }
         const matches = await response.json();
         const suggestedRoommatesDiv = document.getElementById('suggested-roommates');
+        if (!suggestedRoommatesDiv) {
+            console.error('Element with ID "suggested-roommates" not found');
+            showError('server_error', 'roommates');
+            return;
+        }
         suggestedRoommatesDiv.innerHTML = '';
 
         if (matches.length === 0) {
@@ -523,18 +605,28 @@ const displaySuggestedRoommates = async () => {
 
         announceChange(translations[currentLang].roommates_updated);
     } catch (error) {
+        console.error('Suggested roommates error:', error.message);
         showError('no_matches', 'roommates');
+    } finally {
+        hideLoading();
     }
 };
 
 const viewRoommateProfile = async (roommateId) => {
     currentRoommateId = roommateId;
     try {
+        showLoading();
         const response = await fetch(`${API_BASE_URL}/users/${roommateId}`);
-        if (!response.ok) throw new Error('User not found');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'User not found');
+        }
         const roommate = await response.json();
         const answersResponse = await fetch(`${API_BASE_URL}/answers/?user_id=${roommateId}`);
-        if (!answersResponse.ok) throw new Error('Answers not found');
+        if (!answersResponse.ok) {
+            const errorData = await answersResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Answers not found');
+        }
         const answers = await answersResponse.json();
 
         const fields = {
@@ -555,15 +647,30 @@ const viewRoommateProfile = async (roommateId) => {
 
         navigateTo('roommate-profile');
     } catch (error) {
+        console.error('View roommate profile error:', error.message);
         showError('user_not_found', 'roommate-profile');
+    } finally {
+        hideLoading();
     }
 };
 
 const acceptRoommate = async () => {
-    if (!currentUser || !currentRoommateId) return;
+    if (!currentUser || !currentRoommateId) {
+        console.error('Missing currentUser or currentRoommateId');
+        showError('user_not_found', 'roommate-profile');
+        return;
+    }
+    showLoading();
     try {
-        const roomResponse = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`);
-        if (!roomResponse.ok) throw new Error('Room not found');
+        console.log(`Accepting roommate ${currentRoommateId} for user ${currentUser.id}`);
+        const roomResponse = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!roomResponse.ok) {
+            const errorData = await roomResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Room not found');
+        }
         const room = await roomResponse.json();
         const response = await fetch(`${API_BASE_URL}/roommates/`, {
             method: 'POST',
@@ -571,32 +678,68 @@ const acceptRoommate = async () => {
             body: JSON.stringify({ user_id: currentRoommateId, room_id: room.id })
         });
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to add roommate');
         }
         navigateTo('home');
+        updateRoomCapacity();
+        displaySuggestedRoommates();
         announceChange(translations[currentLang].roommate_added);
     } catch (error) {
-        showError(error.message.includes('ظرفیت') ? 'room_full' : 'user_not_found', 'roommate-profile');
+        console.error('Accept roommate error:', error.message);
+        showError(error.message.includes('ظرفیت') ? 'room_full' : 'server_error', 'roommate-profile');
+    } finally {
+        hideLoading();
     }
 };
 
-const rejectRoommate = () => {
-    navigateTo('roommates');
-    displaySuggestedRoommates();
-    announceChange(translations[currentLang].roommate_rejected);
+const rejectRoommate = async () => {
+    if (!currentUser || !currentRoommateId) {
+        console.error('Missing currentUser or currentRoommateId');
+        showError('user_not_found', 'roommate-profile');
+        return;
+    }
+    showLoading();
+    try {
+        console.log(`Rejecting roommate ${currentRoommateId} by user ${currentUser.id}`);
+        const response = await fetch(`${API_BASE_URL}/reject_roommate/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: currentRoommateId, room_id: currentUser.id })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to reject roommate');
+        }
+        navigateTo('roommates');
+        displaySuggestedRoommates();
+        announceChange(translations[currentLang].roommate_rejected);
+    } catch (error) {
+        console.error('Reject roommate error:', error.message);
+        showError('server_error', 'roommate-profile');
+    } finally {
+        hideLoading();
+    }
 };
 
 const removeRoommate = async (roommateId) => {
     try {
+        showLoading();
+        console.log(`Removing roommate ${roommateId}`);
         const response = await fetch(`${API_BASE_URL}/roommates/${roommateId}`, {
             method: 'DELETE'
         });
-        if (!response.ok) throw new Error('Failed to remove roommate');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to remove roommate');
+        }
         updateRoomCapacity();
         announceChange(translations[currentLang].roommate_removed);
     } catch (error) {
+        console.error('Remove roommate error:', error.message);
         showError('user_not_found', 'home');
+    } finally {
+        hideLoading();
     }
 };
 
