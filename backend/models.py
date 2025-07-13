@@ -16,12 +16,11 @@ class User(Base):
     answers = relationship("Answer", back_populates="user")
     rejected_roommates = relationship("RejectedRoommate", back_populates="user", foreign_keys="RejectedRoommate.user_id")
     rejected_by = relationship("RejectedRoommate", back_populates="rejected_by_user", foreign_keys="RejectedRoommate.rejected_by_user_id")
-    notifications = relationship("Notification", back_populates="user")  # Added for notifications
 
 class Room(Base):
     __tablename__ = "rooms"
     id = Column(Integer, primary_key=True, index=True)
-    capacity = Column(Integer)
+    capacity = Column(Integer, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="rooms")
     roommates = relationship("Roommate", back_populates="room", cascade="all, delete-orphan")
@@ -29,7 +28,7 @@ class Room(Base):
 class Roommate(Base):
     __tablename__ = "roommates"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)  # Ensure one room per user
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     room_id = Column(Integer, ForeignKey("rooms.id"))
     user = relationship("User", back_populates="roommates")
     room = relationship("Room", back_populates="roommates")
@@ -56,10 +55,3 @@ class RejectedRoommate(Base):
     rejected_by_user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="rejected_roommates", foreign_keys=[user_id])
     rejected_by_user = relationship("User", back_populates="rejected_by", foreign_keys=[rejected_by_user_id])
-
-class Notification(Base):
-    __tablename__ = "notifications"
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    message = Column(String)
-    user = relationship("User", back_populates="notifications")

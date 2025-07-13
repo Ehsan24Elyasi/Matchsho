@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import Optional, List
 
 class UserBase(BaseModel):
     email: str
@@ -13,17 +13,18 @@ class UserCreate(UserBase):
 
 class User(UserBase):
     id: int
+    password: Optional[str] = None
 
     class Config:
         orm_mode = True
 
 class RoomBase(BaseModel):
-    capacity: int
+    capacity: Optional[int] = None
     owner_id: int
 
 class Room(RoomBase):
     id: int
-    roommates: List["Roommate"] = []
+    roommates: List['Roommate'] = []
 
     class Config:
         orm_mode = True
@@ -34,14 +35,16 @@ class RoommateBase(BaseModel):
 
 class Roommate(RoommateBase):
     id: int
-    user: User = None
+    user: User
 
     class Config:
         orm_mode = True
 
-class Question(BaseModel):
-    id: int
+class QuestionBase(BaseModel):
     text: str
+
+class Question(QuestionBase):
+    id: int
 
     class Config:
         orm_mode = True
@@ -64,16 +67,6 @@ class LoginRequest(BaseModel):
 class MatchResponse(BaseModel):
     user: User
     match_percentage: float
-
-    class Config:
-        orm_mode = True
-
-class NotificationBase(BaseModel):
-    user_id: int
-    message: str
-
-class Notification(NotificationBase):
-    id: int
 
     class Config:
         orm_mode = True

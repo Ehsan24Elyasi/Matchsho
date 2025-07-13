@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
 from database import Base, engine, get_db, SessionLocal
-from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel, RejectedRoommate as RejectedRoommateModel, Notification as NotificationModel
-from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse, Notification
+from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel, RejectedRoommate as RejectedRoommateModel
+from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse
 from typing import List
 import logging
 import traceback
@@ -65,8 +65,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    # Create a room for the user
-    db_room = RoomModel(capacity=2, owner_id=db_user.id)
+    # Create a room for the user without setting capacity yet
+    db_room = RoomModel(owner_id=db_user.id)
     db.add(db_room)
     db.commit()
     db.refresh(db_room)
@@ -168,6 +168,9 @@ def add_roommate(roommate: RoommateBase, db: Session = Depends(get_db)):
     if not room:
         logger.error(f"Room {roommate.room_id} not found")
         raise HTTPException(status_code=404, detail="اتاق یافت نشد")
+    if room.capacity is None:
+        logger.error(f"Room {room.id} has no capacity set")
+        raise HTTPException(status_code=400, detail="ظرفیت اتاق تنظیم نشده است")
     current_roommates = db.query(RoommateModel).filter(RoommateModel.room_id == room.id).all()
     if len(current_roommates) >= room.capacity:
         logger.error(f"Room {room.id} is full, capacity: {room.capacity}, current: {len(current_roommates)}")
@@ -196,13 +199,6 @@ def add_roommate(roommate: RoommateBase, db: Session = Depends(get_db)):
     db.add(db_roommate)
     db.commit()
     db.refresh(db_roommate)
-    # Add notification for the added user
-    notification = NotificationModel(
-        user_id=roommate.user_id,
-        message=f"شما به اتاق کاربر {room.owner_id} اضافه شدید"
-    )
-    db.add(notification)
-    db.commit()
     logger.info(f"Roommate {db_roommate.id} added to room {room.id}")
     return db_roommate
 
@@ -219,19 +215,13 @@ def remove_roommate(roommate_id: int, db: Session = Depends(get_db)):
     # Delete the roommate record
     db.delete(db_roommate)
     # Create a new room for the removed user
-    new_room = RoomModel(capacity=2, owner_id=user.id)
+    new_room = RoomModel(owner_id=user.id)  # Capacity will be set later by quiz
     db.add(new_room)
     db.commit()
     db.refresh(new_room)
     # Add the user to their new room
     new_roommate = RoommateModel(user_id=user.id, room_id=new_room.id)
     db.add(new_roommate)
-    # Add notification for the removed user
-    notification = NotificationModel(
-        user_id=user.id,
-        message=f"شما از اتاق کاربر {room.owner_id} حذف شدید و به یک اتاق جدید منتقل شدید"
-    )
-    db.add(notification)
     db.commit()
     logger.info(f"Roommate {roommate_id} removed and moved to new room {new_room.id}")
     return {"message": "هم‌اتاقی حذف شد"}
@@ -297,23 +287,6 @@ def get_match_percentage(user1_id: int, user2_id: int, db: Session = Depends(get
         logger.error(f"Insufficient answers: user1 has {len(user1_answers)}, user2 has {len(user2_answers)}")
         raise HTTPException(status_code=400, detail="پاسخ‌های کافی برای محاسبه تطابق وجود ندارد")
     return calculate_match_percentage(user1_answers, user2_answers)
-
-@app.get("/notifications/{user_id}", response_model=List[Notification])
-def get_notifications(user_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Fetching notifications for user {user_id}")
-    notifications = db.query(NotificationModel).filter(NotificationModel.user_id == user_id).all()
-    return notifications
-
-@app.delete("/notifications/{notification_id}")
-def delete_notification(notification_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Deleting notification {notification_id}")
-    notification = db.query(NotificationModel).filter(NotificationModel.id == notification_id).first()
-    if not notification:
-        logger.error(f"Notification {notification_id} not found")
-        raise HTTPException(status_code=404, detail="نوتیفیکیشن یافت نشد")
-    db.delete(notification)
-    db.commit()
-    return {"message": "نوتیفیکیشن حذف شد"}
 
 def calculate_match_percentage(user_answers: List[AnswerModel], potential_answers: List[AnswerModel]):
     criteria = [1, 2, 3, 4, 5, 6]  # Question IDs for hygiene, socializing, smoking, noise, beliefs, sleep

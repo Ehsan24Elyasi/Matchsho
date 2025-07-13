@@ -42,7 +42,8 @@ const translations = {
         roommate_rejected: 'هم‌اتاقی رد شد',
         roommate_removed: 'هم‌اتاقی حذف شد',
         profile_updated: 'پروفایل به‌روزرسانی شد',
-        notifications_updated: 'نوتیفیکیشن‌ها به‌روزرسانی شدند',
+        accept: 'پذیرش',
+        reject: 'رد کردن',
         errors: {
             missing_fields: 'لطفاً تمام فیلدها را پر کنید!',
             password_mismatch: 'رمزهای عبور مطابقت ندارند!',
@@ -90,7 +91,8 @@ const translations = {
         roommate_rejected: 'Roommate rejected',
         roommate_removed: 'Roommate removed',
         profile_updated: 'Profile updated',
-        notifications_updated: 'Notifications updated',
+        accept: 'Accept',
+        reject: 'Reject',
         errors: {
             missing_fields: 'Please fill in all fields!',
             password_mismatch: 'Passwords do not match!',
@@ -172,10 +174,7 @@ const navigateTo = (sectionId) => {
         renderNavigation();
         if (sectionId === 'quiz') loadQuizQuestions();
         if (sectionId === 'roommates' && currentUser) displaySuggestedRoommates();
-        if (sectionId === 'home' && currentUser) {
-            updateRoomCapacity();
-            displayNotifications(); // Added to show notifications
-        }
+        if (sectionId === 'home' && currentUser) updateRoomCapacity();
         if (sectionId === 'profile' && currentUser) updateProfilePage();
     } else {
         showError('user_not_found');
@@ -331,7 +330,7 @@ const saveUserInfo = async () => {
         }
         currentUser = await response.json();
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        navigateTo('quiz');
+        navigateTo('quiz'); // هدایت به صفحه تست هم‌اتاقی پس از ثبت‌نام
         loadQuizQuestions();
     } catch (error) {
         console.error('Signup error:', error.message);
@@ -417,7 +416,7 @@ const saveQuizResults = async () => {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || 'Failed to save answers');
         }
-        navigateTo('roommates');
+        navigateTo('home');
         updateProfilePage();
         updateRoomCapacity();
         displaySuggestedRoommates();
@@ -778,67 +777,6 @@ const removeRoommate = async (roommateId) => {
     } catch (error) {
         console.error('Remove roommate error:', error.message);
         showError('user_not_found', 'home');
-    } finally {
-        hideLoading();
-    }
-};
-
-const displayNotifications = async () => {
-    if (!currentUser) {
-        console.error('No currentUser found for notifications');
-        return;
-    }
-    try {
-        showLoading();
-        const response = await fetch(`${API_BASE_URL}/notifications/${currentUser.id}`);
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'Failed to fetch notifications');
-        }
-        const notifications = await response.json();
-        const notificationsDiv = document.getElementById('notifications');
-        if (!notificationsDiv) {
-            console.error('Element with ID "notifications" not found');
-            return;
-        }
-        notificationsDiv.innerHTML = '';
-        if (notifications.length === 0) {
-            notificationsDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ نوتیفیکیشنی وجود ندارد.</p>';
-        } else {
-            notifications.forEach(notification => {
-                const notificationCard = document.createElement('div');
-                notificationCard.className = 'notification-card bg-white shadow rounded-lg p-4 mb-4';
-                notificationCard.innerHTML = `
-                    <p class="text-sm text-gray-800 font-fa">${sanitizeInput(notification.message)}</p>
-                    <button onclick="deleteNotification(${notification.id})" class="text-blue-500 text-xs font-fa mt-2">حذف</button>
-                `;
-                notificationsDiv.appendChild(notificationCard);
-            });
-        }
-        announceChange(translations[currentLang].notifications_updated);
-    } catch (error) {
-        console.error('Notifications error:', error.message);
-        showError('server_error', 'home');
-    } finally {
-        hideLoading();
-    }
-};
-
-const deleteNotification = async (notificationId) => {
-    try {
-        showLoading();
-        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-            method: 'DELETE'
-        });
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'Failed to delete notification');
-        }
-        displayNotifications();
-        announceChange(translations[currentLang].notifications_updated);
-    } catch (error) {
-        console.error('Delete notification error:', error.message);
-        showError('server_error', 'home');
     } finally {
         hideLoading();
     }
