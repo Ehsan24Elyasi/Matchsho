@@ -1,12 +1,12 @@
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import Base, engine, get_db, SessionLocal
-from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel, RejectedRoommate as RejectedRoommateModel
-from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse
+from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel, RejectedRoommate as RejectedRoommateModel, Notification as NotificationModel
+from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse, Notification
 from typing import List
 import logging
+import traceback
 
 # تنظیم لاگ
 logging.basicConfig(level=logging.INFO)
@@ -66,7 +66,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     # Create a room for the user
-    db_room = RoomModel(capacity=2, owner_id=db_user.id)  # Default capacity
+    db_room = RoomModel(capacity=2, owner_id=db_user.id)
     db.add(db_room)
     db.commit()
     db.refresh(db_room)
@@ -145,12 +145,21 @@ def get_questions(db: Session = Depends(get_db)):
 @app.get("/rooms/{user_id}", response_model=Room)
 def get_room(user_id: int, db: Session = Depends(get_db)):
     logger.info(f"Fetching room for user {user_id}")
-    room = db.query(RoomModel).join(RoommateModel).filter(RoommateModel.user_id == user_id).first()
-    if not room:
-        logger.error(f"Room not found for user {user_id}")
-        raise HTTPException(status_code=404, detail="اتاق یافت نشد")
-    room.roommates = db.query(RoommateModel).filter(RoommateModel.room_id == room.id).all()
-    return room
+    try:
+        room = (
+            db.query(RoomModel)
+            .outerjoin(RoommateModel, RoomModel.id == RoommateModel.room_id)
+            .filter(RoommateModel.user_id == user_id)
+            .options(joinedload(RoomModel.roommates).joinedload(RoommateModel.user))
+            .first()
+        )
+        if not room:
+            logger.error(f"Room not found for user {user_id}")
+            raise HTTPException(status_code=404, detail="اتاق یافت نشد")
+        return room
+    except Exception as e:
+        logger.error(f"Error fetching room for user {user_id}: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"خطای سرور: {str(e)}")
 
 @app.post("/roommates/", response_model=Roommate)
 def add_roommate(roommate: RoommateBase, db: Session = Depends(get_db)):
@@ -159,33 +168,72 @@ def add_roommate(roommate: RoommateBase, db: Session = Depends(get_db)):
     if not room:
         logger.error(f"Room {roommate.room_id} not found")
         raise HTTPException(status_code=404, detail="اتاق یافت نشد")
-    current_roommates = db.query(RoommateModel).filter(RoommateModel.room_id == room.id).count()
-    if current_roommates >= room.capacity:
-        logger.error(f"Room {room.id} is full, capacity: {room.capacity}, current: {current_roommates}")
+    current_roommates = db.query(RoommateModel).filter(RoommateModel.room_id == room.id).all()
+    if len(current_roommates) >= room.capacity:
+        logger.error(f"Room {room.id} is full, capacity: {room.capacity}, current: {len(current_roommates)}")
         raise HTTPException(status_code=400, detail="ظرفیت اتاق تکمیل است")
-    # Check if user is already in a room
+    # Check if user exists
+    user = db.query(UserModel).filter(UserModel.id == roommate.user_id).first()
+    if not user:
+        logger.error(f"User {roommate.user_id} not found")
+        raise HTTPException(status_code=404, detail="کاربر یافت نشد")
+    # Check if user is already in another room with others
     existing_roommate = db.query(RoommateModel).filter(RoommateModel.user_id == roommate.user_id).first()
     if existing_roommate:
-        logger.info(f"Removing user {roommate.user_id} from previous room {existing_roommate.room_id}")
-        db.delete(existing_roommate)
-        db.commit()
+        current_room = db.query(RoomModel).filter(RoomModel.id == existing_roommate.room_id).first()
+        current_roommates_count = db.query(RoommateModel).filter(RoommateModel.room_id == current_room.id).count()
+        if current_roommates_count > 1:
+            logger.error(f"User {roommate.user_id} is already in a room with {current_roommates_count} roommates")
+            raise HTTPException(status_code=400, detail="کاربر مورد نظر در یک اتاق قرار دارد و تمایلی به اضافه شدن به اتاق جدید ندارد")
+        # Delete the user's previous room if they are alone
+        if current_room and current_roommates_count == 1:
+            logger.info(f"Deleting previous room {current_room.id} for user {roommate.user_id}")
+            db.delete(existing_roommate)
+            db.delete(current_room)
+            db.commit()
+    # Add user to the new room
     db_roommate = RoommateModel(**roommate.dict())
     db.add(db_roommate)
     db.commit()
     db.refresh(db_roommate)
+    # Add notification for the added user
+    notification = NotificationModel(
+        user_id=roommate.user_id,
+        message=f"شما به اتاق کاربر {room.owner_id} اضافه شدید"
+    )
+    db.add(notification)
+    db.commit()
     logger.info(f"Roommate {db_roommate.id} added to room {room.id}")
     return db_roommate
 
-@app.delete("/roommates/{roommate_id}")
+@app.delete("/roommates/{roommate_id}", response_model=dict)
 def remove_roommate(roommate_id: int, db: Session = Depends(get_db)):
     logger.info(f"Removing roommate {roommate_id}")
     db_roommate = db.query(RoommateModel).filter(RoommateModel.id == roommate_id).first()
     if not db_roommate:
         logger.error(f"Roommate {roommate_id} not found")
         raise HTTPException(status_code=404, detail="هم‌اتاقی یافت نشد")
+    # Get the room and user
+    room = db.query(RoomModel).filter(RoomModel.id == db_roommate.room_id).first()
+    user = db.query(UserModel).filter(UserModel.id == db_roommate.user_id).first()
+    # Delete the roommate record
     db.delete(db_roommate)
+    # Create a new room for the removed user
+    new_room = RoomModel(capacity=2, owner_id=user.id)
+    db.add(new_room)
     db.commit()
-    logger.info(f"Roommate {roommate_id} removed")
+    db.refresh(new_room)
+    # Add the user to their new room
+    new_roommate = RoommateModel(user_id=user.id, room_id=new_room.id)
+    db.add(new_roommate)
+    # Add notification for the removed user
+    notification = NotificationModel(
+        user_id=user.id,
+        message=f"شما از اتاق کاربر {room.owner_id} حذف شدید و به یک اتاق جدید منتقل شدید"
+    )
+    db.add(notification)
+    db.commit()
+    logger.info(f"Roommate {roommate_id} removed and moved to new room {new_room.id}")
     return {"message": "هم‌اتاقی حذف شد"}
 
 @app.post("/reject_roommate/")
@@ -224,7 +272,6 @@ def get_matches(user_id: int, db: Session = Depends(get_db)):
         if len(potential_answers) == 7:
             match_percentage = calculate_match_percentage(user_answers, potential_answers)
             if match_percentage > 50:
-                # Convert UserModel to Pydantic User model
                 user_data = {
                     "id": potential_user.id,
                     "email": potential_user.email,
@@ -232,7 +279,7 @@ def get_matches(user_id: int, db: Session = Depends(get_db)):
                     "class_name": potential_user.class_name,
                     "student_id": potential_user.student_id,
                     "gender": potential_user.gender,
-                    "password": None  # Avoid sending password
+                    "password": None
                 }
                 matches.append(MatchResponse(user=User(**user_data), match_percentage=match_percentage))
                 logger.debug(f"Match found for user {potential_user.id} with percentage {match_percentage}%")
@@ -250,6 +297,23 @@ def get_match_percentage(user1_id: int, user2_id: int, db: Session = Depends(get
         logger.error(f"Insufficient answers: user1 has {len(user1_answers)}, user2 has {len(user2_answers)}")
         raise HTTPException(status_code=400, detail="پاسخ‌های کافی برای محاسبه تطابق وجود ندارد")
     return calculate_match_percentage(user1_answers, user2_answers)
+
+@app.get("/notifications/{user_id}", response_model=List[Notification])
+def get_notifications(user_id: int, db: Session = Depends(get_db)):
+    logger.info(f"Fetching notifications for user {user_id}")
+    notifications = db.query(NotificationModel).filter(NotificationModel.user_id == user_id).all()
+    return notifications
+
+@app.delete("/notifications/{notification_id}")
+def delete_notification(notification_id: int, db: Session = Depends(get_db)):
+    logger.info(f"Deleting notification {notification_id}")
+    notification = db.query(NotificationModel).filter(NotificationModel.id == notification_id).first()
+    if not notification:
+        logger.error(f"Notification {notification_id} not found")
+        raise HTTPException(status_code=404, detail="نوتیفیکیشن یافت نشد")
+    db.delete(notification)
+    db.commit()
+    return {"message": "نوتیفیکیشن حذف شد"}
 
 def calculate_match_percentage(user_answers: List[AnswerModel], potential_answers: List[AnswerModel]):
     criteria = [1, 2, 3, 4, 5, 6]  # Question IDs for hygiene, socializing, smoking, noise, beliefs, sleep

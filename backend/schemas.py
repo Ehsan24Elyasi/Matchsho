@@ -67,3 +67,13 @@ class MatchResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class NotificationBase(BaseModel):
+    user_id: int
+    message: str
+
+class Notification(NotificationBase):
+    id: int
+
+    class Config:
+        orm_mode = True

@@ -42,6 +42,7 @@ const translations = {
         roommate_rejected: 'هم‌اتاقی رد شد',
         roommate_removed: 'هم‌اتاقی حذف شد',
         profile_updated: 'پروفایل به‌روزرسانی شد',
+        notifications_updated: 'نوتیفیکیشن‌ها به‌روزرسانی شدند',
         errors: {
             missing_fields: 'لطفاً تمام فیلدها را پر کنید!',
             password_mismatch: 'رمزهای عبور مطابقت ندارند!',
@@ -49,6 +50,7 @@ const translations = {
             invalid_login: 'ایمیل یا رمز عبور اشتباه است!',
             user_not_found: 'کاربر یافت نشد!',
             room_full: 'اتاق پر است!',
+            user_in_room: 'کاربر مورد نظر در یک اتاق قرار دارد و تمایلی به اضافه شدن به اتاق جدید ندارد',
             quiz_incomplete: 'لطفاً به تمام سوالات پاسخ دهید!',
             server_error: 'خطای سرور رخ داد، لطفاً دوباره تلاش کنید!',
             no_matches: 'هیچ هم‌اتاقی پیشنهادی یافت نشد یا خطای سرور رخ داد!'
@@ -88,6 +90,7 @@ const translations = {
         roommate_rejected: 'Roommate rejected',
         roommate_removed: 'Roommate removed',
         profile_updated: 'Profile updated',
+        notifications_updated: 'Notifications updated',
         errors: {
             missing_fields: 'Please fill in all fields!',
             password_mismatch: 'Passwords do not match!',
@@ -95,6 +98,7 @@ const translations = {
             invalid_login: 'Incorrect email or password!',
             user_not_found: 'User not found!',
             room_full: 'Room is full!',
+            user_in_room: 'The selected user is already in a room and is not available to join a new one',
             quiz_incomplete: 'Please answer all questions!',
             server_error: 'Server error occurred, please try again!',
             no_matches: 'No suggested roommates found or server error occurred!'
@@ -168,7 +172,10 @@ const navigateTo = (sectionId) => {
         renderNavigation();
         if (sectionId === 'quiz') loadQuizQuestions();
         if (sectionId === 'roommates' && currentUser) displaySuggestedRoommates();
-        if (sectionId === 'home' && currentUser) updateRoomCapacity();
+        if (sectionId === 'home' && currentUser) {
+            updateRoomCapacity();
+            displayNotifications(); // Added to show notifications
+        }
         if (sectionId === 'profile' && currentUser) updateProfilePage();
     } else {
         showError('user_not_found');
@@ -468,9 +475,13 @@ const updateProfilePage = async () => {
 };
 
 const updateRoomCapacity = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.error('No currentUser found');
+        return;
+    }
     try {
         showLoading();
+        console.log(`Fetching room data for user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -480,16 +491,24 @@ const updateRoomCapacity = async () => {
             throw new Error(errorData.detail || 'Room not found');
         }
         const room = await response.json();
+        console.log('Room data:', room);
+
         const capacityBar = document.getElementById('capacity-bar');
         const capacityText = document.getElementById('capacity-text');
         const currentRoommatesDiv = document.getElementById('current-roommates');
 
         if (!capacityBar || !capacityText || !currentRoommatesDiv) {
-            console.error('Required DOM elements not found');
+            console.error('Required DOM elements not found:', {
+                capacityBar: !!capacityBar,
+                capacityText: !!capacityText,
+                currentRoommatesDiv: !!currentRoommatesDiv
+            });
+            showError('server_error', 'home');
             return;
         }
 
         const roommates = room.roommates || [];
+        console.log('Roommates:', roommates);
         const capacity = room.capacity || 1;
         const percentage = (roommates.length / capacity) * 100;
 
@@ -499,54 +518,72 @@ const updateRoomCapacity = async () => {
         currentRoommatesDiv.innerHTML = '';
         if (roommates.length === 0) {
             currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ هم‌اتاقی فعلی وجود ندارد.</p>';
+            console.log('No roommates found');
         } else {
             const matchPromises = roommates.map(async (roommate) => {
-                if (roommate.user && roommate.user.id !== currentUser.id) {
-                    const matchResponse = await fetch(`${API_BASE_URL}/match_percentage/${currentUser.id}/${roommate.user.id}`);
-                    if (!matchResponse.ok) {
-                        const errorData = await matchResponse.json().catch(() => ({}));
-                        throw new Error(errorData.detail || 'Failed to fetch match percentage');
-                    }
-                    const matchPercentage = await matchResponse.json();
-
-                    return {
-                        user: roommate.user,
-                        matchPercentage,
-                        roommateId: roommate.id
-                    };
+                console.log('Processing roommate:', roommate);
+                if (!roommate.user || !roommate.user.id) {
+                    console.warn(`Roommate ${roommate.id} has invalid or missing user data:`, roommate.user);
+                    return null;
                 }
-                return null;
+                let matchPercentage = null;
+                try {
+                    const matchResponse = await fetch(`${API_BASE_URL}/match_percentage/${currentUser.id}/${roommate.user.id}`);
+                    if (matchResponse.ok) {
+                        matchPercentage = await matchResponse.json();
+                    } else {
+                        console.warn(`Failed to fetch match percentage for user ${roommate.user.id}`);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching match percentage for roommate ${roommate.id}:`, error.message);
+                }
+                return {
+                    user: roommate.user,
+                    matchPercentage: matchPercentage || 'N/A',
+                    roommateId: roommate.id
+                };
             });
 
             const roommateData = (await Promise.all(matchPromises)).filter(data => data !== null);
+            console.log('Filtered roommate data:', roommateData);
 
-            roommateData.forEach(data => {
-                const card = document.createElement('div');
-                card.className = 'roommate-card';
-                card.innerHTML = `
-                    <div class="profile-container">
-                        <svg class="progress-circle" viewBox="0 0 100 100" aria-label="درصد تطابق">
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="${data.matchPercentage * 2.51}, 251.2"/>
-                        </svg>
-                        <svg class="profile-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="آیکون پروفایل">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span class="match-percentage">${data.matchPercentage}%</span>
-                    </div>
-                    <h3 class="text-sm font-semibold text-gray-800 font-fa mt-4">${sanitizeInput(data.user.name)}</h3>
-                    <p class="text-xs text-gray-600 font-fa">${sanitizeInput(data.user.class_name)}</p>
-                    <button onclick="removeRoommate(${data.roommateId})" class="remove-roommate-btn mt-2 font-fa">حذف</button>
-                `;
-                currentRoommatesDiv.appendChild(card);
-            });
+            if (roommateData.length === 0) {
+                currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ هم‌اتاقی فعلی وجود ندارد.</p>';
+                console.log('No valid roommate data after filtering');
+            } else {
+                roommateData.forEach(data => {
+                    const card = document.createElement('div');
+                    card.className = 'roommate-card';
+                    card.innerHTML = `
+                        <div class="profile-container">
+                            ${data.matchPercentage !== 'N/A' ? `
+                            <svg class="progress-circle" viewBox="0 0 100 100" aria-label="درصد تطابق">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="${data.matchPercentage * 2.51}, 251.2"/>
+                            </svg>
+                            ` : ''}
+                            <svg class="profile-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="آیکون پروفایل">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span class="match-percentage">${data.matchPercentage !== 'N/A' ? data.matchPercentage + '%' : 'N/A'}</span>
+                        </div>
+                        <h3 class="text-sm font-semibold text-gray-800 font-fa mt-4">${sanitizeInput(data.user.name)}</h3>
+                        <p class="text-xs text-gray-600 font-fa">${sanitizeInput(data.user.class_name)}</p>
+                        <button onclick="removeRoommate(${data.roommateId})" class="remove-roommate-btn mt-2 font-fa">حذف</button>
+                    `;
+                    currentRoommatesDiv.appendChild(card);
+                });
+            }
         }
 
         announceChange(translations[currentLang].room_capacity_updated || 'Room capacity updated');
     } catch (error) {
         console.error('Room capacity error:', error.message);
         showError('user_not_found', 'home');
-        currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">خطا در بارگذاری هم‌اتاقی‌ها.</p>';
+        const currentRoommatesDiv = document.getElementById('current-roommates');
+        if (currentRoommatesDiv) {
+            currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">خطا در بارگذاری هم‌اتاقی‌ها.</p>';
+        }
     } finally {
         hideLoading();
     }
@@ -656,7 +693,7 @@ const viewRoommateProfile = async (roommateId) => {
 
 const acceptRoommate = async () => {
     if (!currentUser || !currentRoommateId) {
-        console.error('Missing currentUser or currentRoommateId');
+        console.error('Missing currentUser or currentRoommateId', { currentUser, currentRoommateId });
         showError('user_not_found', 'roommate-profile');
         return;
     }
@@ -672,6 +709,7 @@ const acceptRoommate = async () => {
             throw new Error(errorData.detail || 'Room not found');
         }
         const room = await roomResponse.json();
+        console.log('Room for adding roommate:', room);
         const response = await fetch(`${API_BASE_URL}/roommates/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -681,13 +719,15 @@ const acceptRoommate = async () => {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || 'Failed to add roommate');
         }
+        const newRoommate = await response.json();
+        console.log('New roommate added:', newRoommate);
         navigateTo('home');
         updateRoomCapacity();
         displaySuggestedRoommates();
         announceChange(translations[currentLang].roommate_added);
     } catch (error) {
         console.error('Accept roommate error:', error.message);
-        showError(error.message.includes('ظرفیت') ? 'room_full' : 'server_error', 'roommate-profile');
+        showError(error.message.includes('ظرفیت') ? 'room_full' : error.message.includes('تمایلی') ? 'user_in_room' : 'server_error', 'roommate-profile');
     } finally {
         hideLoading();
     }
@@ -738,6 +778,67 @@ const removeRoommate = async (roommateId) => {
     } catch (error) {
         console.error('Remove roommate error:', error.message);
         showError('user_not_found', 'home');
+    } finally {
+        hideLoading();
+    }
+};
+
+const displayNotifications = async () => {
+    if (!currentUser) {
+        console.error('No currentUser found for notifications');
+        return;
+    }
+    try {
+        showLoading();
+        const response = await fetch(`${API_BASE_URL}/notifications/${currentUser.id}`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to fetch notifications');
+        }
+        const notifications = await response.json();
+        const notificationsDiv = document.getElementById('notifications');
+        if (!notificationsDiv) {
+            console.error('Element with ID "notifications" not found');
+            return;
+        }
+        notificationsDiv.innerHTML = '';
+        if (notifications.length === 0) {
+            notificationsDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ نوتیفیکیشنی وجود ندارد.</p>';
+        } else {
+            notifications.forEach(notification => {
+                const notificationCard = document.createElement('div');
+                notificationCard.className = 'notification-card bg-white shadow rounded-lg p-4 mb-4';
+                notificationCard.innerHTML = `
+                    <p class="text-sm text-gray-800 font-fa">${sanitizeInput(notification.message)}</p>
+                    <button onclick="deleteNotification(${notification.id})" class="text-blue-500 text-xs font-fa mt-2">حذف</button>
+                `;
+                notificationsDiv.appendChild(notificationCard);
+            });
+        }
+        announceChange(translations[currentLang].notifications_updated);
+    } catch (error) {
+        console.error('Notifications error:', error.message);
+        showError('server_error', 'home');
+    } finally {
+        hideLoading();
+    }
+};
+
+const deleteNotification = async (notificationId) => {
+    try {
+        showLoading();
+        const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to delete notification');
+        }
+        displayNotifications();
+        announceChange(translations[currentLang].notifications_updated);
+    } catch (error) {
+        console.error('Delete notification error:', error.message);
+        showError('server_error', 'home');
     } finally {
         hideLoading();
     }
