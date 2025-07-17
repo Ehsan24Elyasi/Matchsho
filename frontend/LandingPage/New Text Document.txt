@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matchsho - هم‌اتاقی ایده‌آلت رو پیدا کن</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --gray: #4b5563;
+            --bg-gray: #f3f4f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            text-align: center;
+        }
+
+        /* Header styles */
+        header {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        /* اضافه کردن padding به main برای جلوگیری از همپوشانی با هدر */
+        main {
+            padding-top: 80px;
+            position: relative;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* ظرف برای دایره‌ها و جمله */
+        .bubble-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary-dark);
+            font-weight: 800;
+            z-index: 2;
+            margin: 1rem;
+            position: relative;
+            text-align: center;
+        }
+
+        h1 span {
+            color: var(--primary);
+            display: block;
+        }
+
+        .counter {
+            font-size: 2rem;
+            font-weight: 800;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 20px 0 10px;
+            z-index: 2;
+        }
+
+        .counter span {
+            background: var(--bg-gray);
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .subtext {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 600;
+            margin-bottom: 20px;
+            z-index: 2;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 2;
+            padding: 0 20px;
+            max-width: 90vw;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: fit-content;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .login-link {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .login-link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 6px solid white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+            animation: float 6s ease-in-out infinite;
+            transition: transform 0.3s ease;
+        }
+
+        .bubble:hover {
+            transform: scale(1.05);
+        }
+
+        .bubble img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* استایل برای بخش step-box */
+        .step-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        /* استایل برای اسکرول افقی */
+        .horizontal-scroll {
+            display: flex;
+            overflow-x: auto;
+            gap: 1rem;
+            padding-bottom: 1rem;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: thin;
+        }
+
+        .horizontal-scroll > div {
+            flex: 0 0 auto;
+            scroll-snap-align: center;
+        }
+
+        /* بهبود ظاهر اسکرول‌بار */
+        .horizontal-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .horizontal-scroll::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .horizontal-scroll::-webkit-scrollbar-track {
+            background: var(--bg-gray);
+        }
+
+        /* استایل برای FAQ */
+        .faq-item p {
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .faq-item p.show {
+            max-height: 200px;
+            opacity: 1;
+            padding-top: 0.5rem;
+        }
+
+        /* استایل برای منوی همبرگری */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: var(--primary);
+            margin: 2px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-menu {
+            transition: all 0.3s ease;
+        }
+
+        /* بهینه‌سازی برای نمایش در موبایل */
+        @media (max-width: 1024px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .counter {
+                font-size: 1.5rem;
+            }
+            .bubble {
+                width: 120px !important;
+                height: 120px !important;
+            }
+            .bubble:nth-child(1) { top: 80px; left: 20px; }
+            .bubble:nth-child(2) { top: 200px; left: 10px; }
+            .bubble:nth-child(3) { bottom: 150px; left: 30px; }
+            .bubble:nth-child(4) { bottom: 80px; left: 15px; }
+            .bubble:nth-child(5) { top: 80px; right: 20px; }
+            .bubble:nth-child(6) { top: 200px; right: 10px; }
+            .bubble:nth-child(7) { bottom: 150px; right: 30px; }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .bubble {
+                width: 100px !important;
+                height: 100px !important;
+            }
+            .bubble:nth-child(1) { top: 60px; left: 15px; }
+            .bubble:nth-child(2) { top: 160px; left: 10px; }
+            .bubble:nth-child(3) { bottom: 120px; left: 20px; }
+            .bubble:nth-child(4) { bottom: 60px; left: 10px; }
+            .bubble:nth-child(5) { top: 60px; right: 15px; }
+            .bubble:nth-child(6) { top: 160px; right: 10px; }
+            .bubble:nth-child(7) { bottom: 120px; right: 20px; }
+            .bubble-container {
+                height: auto;
+                min-height: 100vh;
+            }
+            .header-container {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px 20px;
+            }
+            .nav-menu {
+                display: none;
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+                padding: 10px 0;
+            }
+            .nav-menu.active {
+                display: flex;
+            }
+            .hamburger {
+                display: flex;
+            }
+            .horizontal-scroll > div {
+                min-width: 250px;
+            }
+            footer .flex {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            .bubble {
+                width: 80px !important;
+                height: 80px !important;
+            }
+            .bubble:nth-child(1) { top: 50px; left: 10px; }
+            .bubble:nth-child(2) { top: 130px; left: 5px; }
+            .bubble:nth-child(3) { bottom: 100px; left: 15px; }
+            .bubble:nth-child(4) { bottom: 50px; left: 5px; }
+            .bubble:nth-child(5) { top: 50px; right: 10px; }
+            .bubble:nth-child(6) { top: 130px; right: 5px; }
+            .bubble:nth-child(7) { bottom: 100px; right: 15px; }
+            .counter span {
+                min-width: 24px;
+                padding: 6px;
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const wordSwap = document.querySelector('.word-swap');
+            if (wordSwap) {
+                const words = wordSwap.querySelectorAll('span');
+                let activeIndex = 0;
+                setInterval(() => {
+                    words.forEach(word => word.classList.remove('active'));
+                    words[activeIndex].classList.add('active');
+                    activeIndex = (activeIndex + 1) % words.length;
+                }, 2500); // تعویض هر 2.5 ثانیه
+            }
+        });
+    </script>
+    </head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center header-container">
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <h1 class="text-2xl font-bold text-blue-600">Matchsho</h1>
+                <img src="Matchsho.jpg" alt="Matchsho Logo" class="h-12">
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <nav class="nav-menu flex space-x-6 space-x-reverse">
+                <a href="#about" class="text-gray-600 hover:text-blue-600 transition">درباره ما</a>
+                <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 transition">چطور کار می‌کنه</a>
+                <a href="#faq" class="text-gray-600 hover:text-blue-600 transition">سوالات متداول</a>
+            </nav>
+            <div class="flex space-x-4 space-x-reverse">
+                <a href="/login" class="bg-blue-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-blue-700 transition">ورود</a>
+                <a href="/signup" class="border border-blue-600 text-blue-600 px-5 py-2 rounded-full font-semibold hover:bg-blue-600 hover:text-white transition">ثبت‌نام</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex flex-col items-center justify-center w-full">
+        <div class="bubble-container">
+            <!-- Left Side Bubbles -->
+            <div class="bubble" style="top: 80px; left: 130px; width: 250px; height: 250px;">
+                <img  src="4.jpg" alt="Profile 1">
+            </div>
+            <div class="bubble" style="top: 310px; left: 200px; width: 140px; height: 140px;">
+                <img src="2.jpg" alt="Profile 2">
+            </div>
+            <div class="bubble" style="bottom: 200px; left: 400px; width: 150px; height: 150px;">
+                <img src="3.jpg" alt="Profile 3">
+            </div>
+            <div class="bubble" style="bottom: 130px; left: 250px; width: 120px; height: 120px;">
+                <img src="4.jpg" alt="Profile 4">
+            </div>
+
+            <!-- Right Side Bubbles -->
+            <div class="bubble" style="top: 160px; right: 300px; width: 200px; height: 200px;">
+                <img src="5.jpg" alt="Profile 5">
+            </div>
+            <div class="bubble" style="top: 300px; right: 90px; width: 140px; height: 140px;">
+                <img src="6.jpg" alt="Profile 6">
+            </div>
+            <div class="bubble" style="bottom: 180px; right: 300px; width: 150px; height: 150px;">
+                <img src="7.jpg" alt="Profile 7">
+            </div>
+            <h2 class="text-2xl md:text-2xl font-bold mb-4">
+                 
+                    👋 دنبال یه هم‌اتاقی <span class="word-swap text-blue-200">
+                    <span>باحال</span>
+                    <span>مرتب</span>
+                    <span>دانشجویی</span>
+                    <span>هم‌فکر</span>
+                </span> هستی؟
+            </h2>
+            <h1>
+            <p class="text-2xl font-semibold mb-8">با Matchsho پیداش کن!</p>
+                        <a href="/signup" class="bg-blue-600 text-white px-8 py-3 rounded-full text-lg font-semibold hover:bg-blue-700 transition">همین حالا شروع کن!</a>
+            </h1>
+        </div>
+    </main>
+
+    <!-- How It Works Section -->
+    <section class="py-20 bg-gray-100 w-full" id="how-it-works">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">چطور کار می‌کنه؟</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="step-box">
+                    <div class="text-4xl font-bold text-blue-600 mb-4">۱</div>
+                    <h4 class="text-xl font-semibold mb-2">ثبت‌نام کن</h4>
+                    <p class="text-gray-600">یه حساب رایگان بساز و عادات و دانشگاهت رو وارد کن.</p>
+                </div>
+                <div class="step-box">
+                    <div class="text-4xl font-bold text-blue-600 mb-4">۲</div>
+                    <h4 class="text-xl font-semibold mb-2">جستجو کن</h4>
+                    <p class="text-gray-600">با فیلترهای ساده، هم‌اتاقی مناسب رو پیدا کن.</p>
+                </div>
+                <div class="step-box">
+                    <div class="text-4xl font-bold text-blue-600 mb-4">۳</div>
+                    <h4 class="text-xl font-semibold mb-2">مچ شو!</h4>
+                    <p class="text-gray-600">با هم‌اتاقی جدیدت هماهنگ شو و خونه‌ت رو پر کن!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Proof Section -->
+    <section class="py-20 bg-white w-full">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">کاربرای ما چی می‌گن؟</h3>
+            <div class="horizontal-scroll">
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm text-center min-w-[300px] sm:min-w-[250px]">
+                    <p class="italic text-gray-600 mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
+                    <p class="font-semibold text-blue-600">رضا، دانشجوی دانشگاه تهران</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm text-center min-w-[300px] sm:min-w-[250px]">
+                    <p class="italic text-gray-600 mb-4">"تو یه هفته هم‌اتاقی مناسب پیدا کردم، خیلی ساده بود!"</p>
+                    <p class="font-semibold text-blue-600">نگار، دانشجوی شریف</p>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm text-center min-w-[300px] sm:min-w-[250px]">
+                    <p class="italic text-gray-600 mb-4">"Matchsho بهم کمک کرد یه هم‌اتاقی مرتب پیدا کنم!"</p>
+                    <p class="font-semibold text-blue-600">سارا، دانشجوی اصفهان</p>
+                </div>
+            </div>
+            <p class="text-center text-lg mt-8 text-gray-600">بیش از ۵۰۰۰ دانشجو با Matchsho هم‌اتاقی‌شون رو پیدا کردن!</p>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-20 bg-gray-100 w-full" id="faq">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">سوالات متداول</h3>
+            <div class="space-y-6">
+                <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-semibold mb-2 cursor-pointer text-blue-600">Matchsho چطور کار می‌کنه؟</h4>
+                    <p class="text-gray-600">کافیه ثبت‌نام کنی، عادات و دانشگاهت رو وارد کنی، و ما هم‌اتاقی مناسب رو بهت پیشنهاد می‌دیم.</p>
+                </div>
+                <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-semibold mb-2 cursor-pointer text-blue-600">آیا Matchsho رایگانه؟</h4>
+                    <p class="text-gray-600">بله! استفاده از Matchsho کاملاً رایگانه و نیازی به پرداخت هزینه نیست.</p>
+                </div>
+                <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-semibold mb-2 cursor-pointer text-blue-600">چطور مطمئن شم هم‌اتاقیم مناسبه؟</h4>
+                    <p class="text-gray-600">ما با فیلترهای دقیق مثل عادات و دانشگاه، بهت کمک می‌کنیم بهترین مچ رو پیدا کنی.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 w-full">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-right">
+            <div class="mb-6">
+                <img src="Matchsho.jpg" alt="Matchsho Logo" class="h-12 inline-block mr-2">
+                <span class="inline-block">Matchsho: خونه‌ت رو با دوست جدیدت پر کن!</span>
+            </div>
+            <div class="flex justify-end space-x-6 space-x-reverse mb-6 flex-wrap">
+                <a href="#about" class="hover:text-blue-400 transition">درباره ما</a>
+                <a href="#contact" class="hover:text-blue-400 transition">تماس با ما</a>
+                <a href="#privacy" class="hover:text-blue-400 transition">سیاست حریم خصوصی</a>
+                <a href="#faq" class="hover:text-blue-400 transition">سوالات متداول</a>
+            </div>
+            <div class="flex justify-end space-x-4">
+                <a href="https://x.com/Matchsho" target="_blank"><img src="https://via.placeholder.com/30?text=X" alt="X" class="hover:opacity-80"></a>
+                <a href="https://instagram.com/Matchsho" target="_blank"><img src="https://via.placeholder.com/30?text=IG" alt="Instagram" class="hover:opacity-80"></a>
+            </div>
+            <p class="mt-6 text-sm text-gray-400 text-right">ساخته شده با <span style="color: #3b82f6;">♥</span> در ایران - 1404</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript for FAQ and Hamburger Menu -->
+    <script>
+        // FAQ Toggle
+        document.querySelectorAll('.faq-item h4').forEach(item => {
+            item.addEventListener('click', () => {
+                const answer = item.nextElementSibling;
+                answer.classList.toggle('show');
+            });
+        });
+
+        // Hamburger Menu Toggle
+        document.querySelector('.hamburger').addEventListener('click', () => {
+            document.querySelector('.nav-menu').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let currentRoommateId = null;
 let currentLang = localStorage.getItem('language') || 'fa';
-let isNewUser = localStorage.getItem('isNewUser') === 'true' || false; // ذخیره پرچم در localStorage
+let isNewUser = localStorage.getItem('isNewUser') === 'true' || false; 
 
 document.documentElement.lang = currentLang;
 document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
