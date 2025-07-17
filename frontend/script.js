@@ -3,6 +3,7 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let currentRoommateId = null;
 let currentLang = localStorage.getItem('language') || 'fa';
+let isNewUser = localStorage.getItem('isNewUser') === 'true' || false; // ذخیره پرچم در localStorage
 
 document.documentElement.lang = currentLang;
 document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -165,6 +166,7 @@ const updateLanguage = () => {
 };
 
 const navigateTo = (sectionId) => {
+    console.log(`Navigating to ${sectionId}, currentUser:`, currentUser, `isNewUser: ${isNewUser}`);
     document.querySelectorAll('section').forEach(section => section.classList.add('hidden'));
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
@@ -172,11 +174,17 @@ const navigateTo = (sectionId) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         updateNavigation(sectionId);
         renderNavigation();
-        if (sectionId === 'quiz') loadQuizQuestions();
-        if (sectionId === 'roommates' && currentUser) displaySuggestedRoommates();
-        if (sectionId === 'home' && currentUser) updateRoomCapacity();
-        if (sectionId === 'profile' && currentUser) updateProfilePage();
+        if (sectionId === 'quiz') {
+            loadQuizQuestions();
+        } else if (sectionId === 'roommates' && currentUser && !isNewUser) {
+            displaySuggestedRoommates();
+        } else if (sectionId === 'home' && currentUser && !isNewUser) {
+            updateRoomCapacity();
+        } else if (sectionId === 'profile' && currentUser) {
+            updateProfilePage();
+        }
     } else {
+        console.error(`Section ${sectionId} not found`);
         showError('user_not_found');
     }
 };
@@ -256,7 +264,9 @@ const handleLanguageToggle = debounce(() => {
 
 const handleLogout = () => {
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('isNewUser');
     currentUser = null;
+    isNewUser = false;
     navigateTo('login');
     announceChange(translations[currentLang].logged_out);
 };
@@ -267,6 +277,7 @@ const handleLogin = async () => {
 
     try {
         showLoading();
+        console.log('Attempting login with:', { email });
         const response = await fetch(`${API_BASE_URL}/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -277,7 +288,10 @@ const handleLogin = async () => {
             throw new Error(errorData.detail || 'Login failed');
         }
         currentUser = await response.json();
+        console.log('Login successful:', currentUser);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('isNewUser', 'false');
+        isNewUser = false;
         navigateTo('home');
         updateProfilePage();
         updateRoomCapacity();
@@ -312,6 +326,7 @@ const saveUserInfo = async () => {
 
     try {
         showLoading();
+        console.log('Attempting to register user:', { email, name, className, studentId, gender });
         const response = await fetch(`${API_BASE_URL}/users/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -329,9 +344,11 @@ const saveUserInfo = async () => {
             throw new Error(errorData.detail || 'Signup failed');
         }
         currentUser = await response.json();
+        console.log('User registered successfully:', currentUser);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        navigateTo('quiz'); // هدایت به صفحه تست هم‌اتاقی پس از ثبت‌نام
-        loadQuizQuestions();
+        localStorage.setItem('isNewUser', 'true');
+        isNewUser = true;
+        navigateTo('quiz');
     } catch (error) {
         console.error('Signup error:', error.message);
         showError(error.message.includes('ایمیل') ? 'email_exists' : 'missing_fields', 'signup');
@@ -341,6 +358,7 @@ const saveUserInfo = async () => {
 };
 
 const loadQuizQuestions = async () => {
+    console.log('Loading quiz questions...');
     const cachedQuestions = localStorage.getItem('questions');
     if (cachedQuestions) {
         const questions = JSON.parse(cachedQuestions);
@@ -366,7 +384,12 @@ const loadQuizQuestions = async () => {
 };
 
 const renderQuestions = (questions) => {
+    console.log('Rendering quiz questions:', questions);
     const quizDiv = document.getElementById('quiz-questions');
+    if (!quizDiv) {
+        console.error('Quiz questions div not found');
+        return;
+    }
     quizDiv.innerHTML = '';
     questions.forEach((q, index) => {
         const questionId = q.id;
@@ -407,6 +430,7 @@ const saveQuizResults = async () => {
 
     try {
         showLoading();
+        console.log('Saving quiz answers:', answers);
         const response = await fetch(`${API_BASE_URL}/answers/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -416,6 +440,8 @@ const saveQuizResults = async () => {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || 'Failed to save answers');
         }
+        localStorage.setItem('isNewUser', 'false');
+        isNewUser = false;
         navigateTo('home');
         updateProfilePage();
         updateRoomCapacity();
@@ -783,6 +809,7 @@ const removeRoommate = async (roommateId) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded triggered, currentUser:', currentUser, 'isNewUser:', isNewUser);
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
     }
@@ -793,23 +820,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const femaleButton = document.getElementById('gender-female');
     const genderInput = document.getElementById('register-gender');
 
-    maleButton.addEventListener('click', () => {
-        maleButton.classList.add('active');
-        femaleButton.classList.remove('active');
-        genderInput.value = 'مرد';
-    });
+    if (maleButton && femaleButton && genderInput) {
+        maleButton.addEventListener('click', () => {
+            maleButton.classList.add('active');
+            femaleButton.classList.remove('active');
+            genderInput.value = 'مرد';
+        });
 
-    femaleButton.addEventListener('click', () => {
-        femaleButton.classList.add('active');
-        maleButton.classList.remove('active');
-        genderInput.value = 'زن';
-    });
+        femaleButton.addEventListener('click', () => {
+            femaleButton.classList.add('active');
+            maleButton.classList.remove('active');
+            genderInput.value = 'زن';
+        });
+    }
 
-    if (currentUser) {
-        navigateTo('home');
-    } else {
+    if (!currentUser) {
+        console.log('No currentUser, navigating to splash');
         navigateTo('splash');
         setTimeout(() => navigateTo('login'), 2000);
+    } else if (isNewUser) {
+        console.log('New user, navigating to quiz');
+        navigateTo('quiz');
+    } else {
+        console.log('Existing user, navigating to home');
+        navigateTo('home');
     }
 
     renderNavigation();
