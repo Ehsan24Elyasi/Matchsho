@@ -114,5 +114,18 @@ document.addEventListener('DOMContentLoaded', () => {
         img.style.setProperty('--rotate', `${rotate}deg`);
         img.style.animation = `float ${duration}s infinite ease-in-out ${delay}s`;
     });
-  
+      const splash = document.getElementById('splash');
+    const mainContent = document.getElementById('main-content');
+    
+    if (splash && mainContent) {
+        setTimeout(() => {
+            splash.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            setTimeout(() => {
+                splash.remove();
+            }, 500); 
+        }, 1000);
+    } else {
+        console.error('Splash یا Main Content پیدا نشد');
+    }
 });

@@ -837,7 +837,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentUser) {
         console.log('No currentUser, navigating to splash');
         navigateTo('splash');
-        setTimeout(() => navigateTo('login'), 2000);
+        setTimeout(() => navigateTo('login'), 0);
     } else if (isNewUser) {
         console.log('New user, navigating to quiz');
         navigateTo('quiz');
