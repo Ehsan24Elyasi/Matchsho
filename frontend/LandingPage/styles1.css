@@ -154,26 +154,24 @@ input[type="text"] {
 }
 
 .bubble {
-    position: absolute;
-    border-radius: 50%;
-    overflow: hidden;
-    z-index: 1;
-    max-width: 25%;
-    max-height: 25%;
-    aspect-ratio: 1/1;
-    transform: translate(-2.99918px, 2.99836px) rotate(1deg);
-    animation: move 2s infinite ease-in-out;
-}
-
-.bubble:hover {
-    transform: scale(1.05);
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 1;
+  aspect-ratio: 1 / 1;
+  width: 25%;
+  /* حذف max-width و max-height برای جلوگیری از کشیدگی */
+  animation: move 2s infinite ease-in-out;
+  transform: translate(-2.99918px, 2.99836px) rotate(1deg);
 }
 
 .bubble img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block; /* مهم برای حذف فاصله‌های ناخواسته */
 }
+
 
 @keyframes float {
     0% { transform: translate(0, 0) rotate(0deg); }
@@ -463,17 +461,28 @@ input[type="text"] {
 }
 
 .hamburger {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  align-items: end;
 }
 
 .hamburger-line {
-    width: 24px;
-    height: 2px;
-    background-color: #333;
+  width: 24px;
+  height: 2px;
+  background-color: #333;
 }
+
+@media (max-width: 768px) {
+  .hamburger {
+    position: fixed;
+    top: 40px;
+    right: 20px;
+    z-index: 1000;
+  }
+}
+
 
 .mobile-menu {
     display: flex;
@@ -524,3 +533,27 @@ input[type="text"] {
     background-color: #2563eb;
     color: white;
 }
+
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-snap-x {
+    scroll-snap-type: x proximity;
+  }
+  .scroll-snap-align-center {
+    scroll-snap-align: center;
+  }
+  @media (max-width: 639px) {
+    #scrollContainer {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    .container {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+  }

@@ -26,13 +26,13 @@
   <div class="header-container flex items-center justify-between p-4 max-w-7xl mx-auto">
 
     <!-- راست: لوگو و نام سایت -->
-    <div class="flex items-center gap-8">
+    <div class="flex items-center gap-2">
       <img src="../src/Matchsho.jpg" alt="Matchsho Logo" class="h-16">
       <h1 class="text-2xl font-bold text-blue-600">Matchsho</h1>
     </div>
 
     <!-- دکمه همبرگر (مخصوص موبایل) -->
-    <button id="hamburger" class="hamburger md:hidden">
+    <button id="hamburger" class="hamburger md:hidden ">
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
@@ -192,15 +192,14 @@
 </section>
 
     <!-- Social Proof Section -->
-<section class="py-20 w-full rounded-[50px] relative bg-gray-100">
+<section class="py-8 sm:py-12 md:py-16 lg:py-20 w-full rounded-3xl sm:rounded-[40px] lg:rounded-[50px] relative bg-gray-100">
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-    <h3 class="text-2xl sm:text-3xl font-bold text-center mb-12 text-gray-800">کاربرای ما چی می‌گن؟🚀</h3>
+    <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-8 sm:mb-10 md:mb-12 text-gray-800">کاربرای ما چی می‌گن؟🚀</h3>
     <div class="relative">
-
       <!-- دکمه چپ -->
       <button id="scrollLeft"
-        class="hidden md:flex absolute left-[-20px] md:left-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-10 md:w-12 h-10 md:h-12 items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
-        <svg class="w-5 md:w-6 h-5 md:h-6" viewBox="0 0 320 512" fill="currentColor">
+        class="hidden sm:flex absolute left-[-15px] md:left-[-20px] lg:left-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-9 sm:w-10 md:w-11 lg:w-12 h-9 sm:h-10 md:h-11 lg:h-12 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
+        <svg class="w-4 sm:w-5 md:w-5 lg:w-6 h-4 sm:h-5 md:h-5 lg:h-6" viewBox="0 0 320 512" fill="currentColor">
           <path
             d="M52.7 267.3c-6.2-6.2-6.2-16.4 0-22.6l160-160c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6L86.6 256l148.7 148.7c6.2 6.2 6.2 16.4 0 22.6s-16.4 6.2-22.6 0l-160-160z" />
         </svg>
@@ -208,26 +207,40 @@
 
       <!-- اسلایدر -->
       <div id="scrollContainer"
-        class="flex overflow-x-auto gap-4 sm:gap-6 pb-6 scroll-snap-x mandatory scrollbar-hidden px-1 sm:px-0">
+        class="flex overflow-x-auto gap-3 sm:gap-4 md:gap-5 lg:gap-6 pb-4 sm:pb-6 scroll-snap-x mandatory scrollbar-hidden px-1 sm:px-2 md:px-0 snap-proximity">
         <div
-          class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm text-center min-w-[250px] sm:min-w-[300px] scroll-snap-align-center shrink-0">
-          <p class="italic text-gray-600 mb-3 sm:mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
-          <p class="font-semibold text-blue-600">رضا، دانشگاه تهران</p>
+          class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">رضا، دانشگاه تهران</p>
         </div>
-        <!-- ... سایر آیتم‌ها همانند بالا -->
+        <div
+          class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">رضا، دانشگاه تهران</p>
+        </div>
+        <div
+          class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">رضا، دانشگاه تهران</p>
+        </div>
+        <div
+          class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"با Matchsho هم‌اتاقی‌ای پیدا کردم که مثل خودم عاشق فیلمه!"</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">رضا، دانشگاه تهران</p>
+        </div>
       </div>
 
       <!-- دکمه راست -->
       <button id="scrollRight"
-        class="hidden md:flex absolute right-[-20px] md:right-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-10 md:w-12 h-10 md:h-12 items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
-        <svg class="w-5 md:w-6 h-5 md:h-6" viewBox="0 0 320 512" fill="currentColor">
+        class="hidden sm:flex absolute right-[-15px] md:right-[-20px] lg:right-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-9 sm:w-10 md:w-11 lg:w-12 h-9 sm:h-10 md:h-11 lg:h-12 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
+        <svg class="w-4.sm:w-5 md:w-5 lg:w-6 h-4 sm:h-5 md:h-5 lg:h-6" viewBox="0 0 320 512" fill="currentColor">
           <path
             d="M267.3 244.7c6.2 6.2 6.2 16.4 0 22.6l-160 160c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6L233.4 256 84.7 107.3c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l160 160z" />
         </svg>
       </button>
     </div>
 
-    <p class="text-center text-base sm:text-lg mt-8 text-gray-600">بیش از ۵۰۰۰ دانشجو با Matchsho هم‌اتاقی‌شون رو پیدا کردن!</p>
+    <p class="text-center text-sm sm:text-base md:text-lg lg:text-xl mt-6 sm:mt-7 md:mt-8 text-gray-600">بیش از ۵۰۰۰ دانشجو با Matchsho هم‌اتاقی‌شون رو پیدا کردن!</p>
   </div>
 </section>
 
