@@ -114,6 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
         img.style.setProperty('--rotate', `${rotate}deg`);
         img.style.animation = `float ${duration}s infinite ease-in-out ${delay}s`;
     });
+
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('hidden');
+  });
+  
       const splash = document.getElementById('splash');
     const mainContent = document.getElementById('main-content');
     
@@ -124,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 splash.remove();
             }, 500); 
-        }, 1000);
+        }, 100); // spalsh change
     } else {
         console.error('Splash یا Main Content پیدا نشد');
     }

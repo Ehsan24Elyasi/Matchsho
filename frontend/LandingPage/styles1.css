@@ -459,3 +459,70 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+/* دکمه همبرگر */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.hamburger-line {
+  width: 24px;
+  height: 2px;
+  background-color: #333;
+}
+
+/* منوی موبایل */
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background-color: white;
+  border-top: 1px solid #e5e7eb; /* Tailwind border-gray-200 */
+}
+
+/* لینک‌های موبایل */
+.mobile-link {
+  padding: 0.5rem 0;
+  color: #374151; /* Tailwind text-gray-700 */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.mobile-link:hover {
+  color: #2563eb; /* Tailwind text-blue-600 */
+}
+
+/* دکمه ورود */
+.btn-login {
+  background-color: #2563eb; /* Tailwind bg-blue-600 */
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-login:hover {
+  background-color: #1e40af; /* Tailwind bg-blue-700 */
+}
+
+/* دکمه ثبت‌نام */
+.btn-signup {
+  border: 2px solid #2563eb;
+  color: #2563eb;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-signup:hover {
+  background-color: #2563eb;
+  color: white;
+}

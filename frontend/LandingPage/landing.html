@@ -21,29 +21,44 @@
 
 <div id="main-content" class="hidden">
     <!-- Header -->
-<header dir="rtl"> 
-  <div class="container mx-auto px-4 sm:px-6 lg:px-20 py-3 flex justify-between items-center header-container">
-    
-    <!-- Right side: Logo + Nav -->
-    <div class="flex items-center space-x-6 space-x-reverse">
-      <!-- Logo & Site Name -->
-      <div class="flex items-center space-x-4 space-x-reverse">
-        <h1 class="text-3xl font-bold text-blue-600 mt-2">Matchsho</h1>
-        <img src="../src/Matchsho.jpg" alt="Matchsho Logo" class="h-16">
-      </div>
-      
-      <!-- Navigation Menu -->
-      <nav class="nav-menu flex space-x-6 space-x-reverse">
-        <a href="#how-it-works" class="text-gray-600 hover:text-blue-600 transition">چطور کار می‌کنه</a>
-        <a href="#faq" class="text-gray-600 hover:text-blue-600 transition">سوالات متداول</a>
-      </nav>
+
+<header dir="rtl" class="border-b">
+  <div class="header-container flex items-center justify-between p-4 max-w-7xl mx-auto">
+
+    <!-- راست: لوگو و نام سایت -->
+    <div class="flex items-center gap-8">
+      <img src="../src/Matchsho.jpg" alt="Matchsho Logo" class="h-16">
+      <h1 class="text-2xl font-bold text-blue-600">Matchsho</h1>
     </div>
 
-    <!-- Left side: Buttons -->
-    <div class="flex space-x-4 space-x-reverse">
-      <a href="../index.html#login" class="bg-blue-600 text-white px-5 py-2 rounded-full font-semibold hover:bg-blue-700 transition">ورود</a>
-      <a href="../index.html#" class="border border-blue-600 text-blue-600 px-5 py-2 rounded-full font-semibold hover:bg-blue-600 hover:text-white transition">ثبت‌نام</a>
-    </div>
+    <!-- دکمه همبرگر (مخصوص موبایل) -->
+    <button id="hamburger" class="hamburger md:hidden">
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+      <span class="hamburger-line"></span>
+    </button>
+
+    <!-- منوی دسکتاپ -->
+    <nav class="nav-menu hidden md:flex flex-row-reverse items-center gap-6 w-full justify-between">
+      <!-- لینک‌ها سمت راست -->
+      <div class="flex items-center gap-6">
+        <a href="../index.html#login" class="btn-login">ورود</a>
+        <a href="../index.html#" class="btn-signup">ثبت‌نام</a>
+      </div>
+      <!-- دکمه‌ها سمت چپ -->
+      <div class="flex items-center gap-4 mr-12">
+        <a href="#" class="text-gray-700 hover:text-blue-600">چطور کار می‌کنه</a>
+        <a href="#" class="text-gray-700 hover:text-blue-600">سوالات متداول</a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- منوی موبایل -->
+  <div id="mobile-menu" class="mobile-menu hidden md:hidden">
+    <a href="#" class="mobile-link">چطور کار می‌کنه</a>
+    <a href="#" class="mobile-link">سوالات متداول</a>
+    <a href="../index.html#login" class="btn-login mt-2">ورود</a>
+    <a href="../index.html#" class="btn-signup mt-2">ثبت‌نام</a>
   </div>
 </header>
 
@@ -78,7 +93,7 @@
                 <img src="../src/7.jpg" alt="Profile 2">
             </div>
 
-            <div class="sentence text-5xl font-bold mb-16">یه هم‌اتاقی می‌خوای؟👋</div>
+            <div class="sentence text-5xl font-bold mb-16 mt-12">یه هم‌اتاقی می‌خوای؟👋</div>
 
             <div class="sentence text-4xl font-bold ">
                 <span class="text-5xl"> یه آدم</span>
