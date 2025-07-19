@@ -172,6 +172,10 @@ const navigateTo = (sectionId) => {
     if (targetSection) {
         targetSection.classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // به‌روزرسانی هش URL
+        window.location.hash = sectionId;
+
         updateNavigation(sectionId);
         renderNavigation();
         if (sectionId === 'quiz') {
@@ -188,6 +192,8 @@ const navigateTo = (sectionId) => {
         showError('user_not_found');
     }
 };
+
+
 
 const updateNavigation = (sectionId) => {
     const sectionsWithNav = ['home', 'roommates', 'profile', 'quiz', 'roommate-profile'];
