@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatchIt</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles_dashboard.css">
+</head>
+<body class="font-fa">
+    <section id="login" class="min-h-screen flex items-center justify-center bg-gray-100 hidden">
+        <div class="max-w-md w-full bg-white p-8 rounded-lg shadow">
+            <h2 class="text-2xl font-bold text-center text-gray-800" data-lang="login_title">ورود</h2>
+            <div id="login-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+            <div class="mt-6">
+                <label for="login-email" class="block text-gray-700 font-fa" data-lang="email">ایمیل</label>
+                <input id="login-email" type="email" class="w-full p-2 mt-1 border rounded-lg font-fa">
+            </div>
+            <div class="mt-4">
+                <label for="login-password" class="block text-gray-700 font-fa" data-lang="password">رمز عبور</label>
+                <input id="login-password" type="password" class="w-full p-2 mt-1 border rounded-lg font-fa">
+            </div>
+            <button onclick="handleLogin()" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="login_btn">ورود</button>
+            <p class="mt-4 text-center text-sm text-gray-600 font-fa">
+                حساب کاربری ندارید؟ <a href="#" onclick="navigateTo('signup')" class="text-blue-500">ساخت حساب کاربری</a>
+            </p>
+        </div>
+    </section>
+
+        <section id="signup" class="min-h-screen flex items-center justify-center bg-gray-100 hidden">
+            <div class="max-w-md w-full bg-white p-8 rounded-lg shadow">
+                <h2 class="text-2xl font-bold text-center text-gray-800" data-lang="signup_title">ثبت‌نام</h2>
+                <div id="signup-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+                <div class="mt-6">
+                    <label for="signup-email" class="block text-gray-700 font-fa" data-lang="email">ایمیل *</label>
+                    <input id="signup-email" type="email" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="signup-password" class="block text-gray-700 font-fa" data-lang="password">رمز عبور *</label>
+                    <input id="signup-password" type="password" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="signup-confirm-password" class="block text-gray-700 font-fa" data-lang="confirm_password">تأیید رمز عبور *</label>
+                    <input id="signup-confirm-password" type="password" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="register-name" class="block text-gray-700 font-fa" data-lang="name">نام *</label>
+                    <input id="register-name" type="text" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="register-class" class="block text-gray-700 font-fa" data-lang="class">رشته *</label>
+                    <input id="register-class" type="text" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="register-student-id" class="block text-gray-700 font-fa" data-lang="student_id">شماره دانشجویی *</label>
+                    <input id="register-student-id" type="text" class="w-full p-2 mt-1 border rounded-lg font-fa">
+                </div>
+                <div class="mt-4">
+                    <label for="register-gender" class="block text-gray-700 font-fa" data-lang="gender">جنسیت *</label>
+                    <div class="flex space-x-2 mt-2">
+                        <button id="gender-male" type="button" class="flex-1 p-2 border rounded-lg text-center font-fa">مرد</button>
+                        <button id="gender-female" type="button" class="flex-1 p-2 border rounded-lg text-center font-fa">زن</button>
+                        <input id="register-gender" type="text" class="hidden">
+                    </div>
+                </div>
+                <p class="mt-4 text-sm text-gray-600 font-fa" data-lang="required">*فیلدهای اجباری</p>
+                <button onclick="saveUserInfo()" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="signup_btn">ادامه</button>
+            </div>
+        </section>
+
+    <section id="quiz" class="min-h-screen flex items-center justify-center bg-gray-100 hidden">
+        <div class="max-w-md w-full bg-white p-8 rounded-lg shadow">
+            <h2 class="text-2xl font-bold text-center text-gray-800" data-lang="quiz_title">هم‌اتاقی ایده‌آلت رو پیدا کن</h2>
+            <p class="mt-4 text-center text-gray-600 font-fa" data-lang="quiz_subtitle">جواب دادن به این سوالات به ما کمک می‌کنه تا هم‌اتاقی مناسب رو برات پیدا کنیم.</p>
+            <div id="quiz-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+            <div id="quiz-questions" class="mt-6"></div>
+            <button onclick="saveQuizResults()" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="submit">پیدا کن!</button>
+        </div>
+    </section>
+
+    <section id="roommates" class="min-h-screen flex flex-col items-center bg-gray-100 hidden py-8">
+        <h2 class="text-2xl font-bold text-gray-800" data-lang="results_title">هم‌اتاقی‌های پیشنهادی</h2>
+        <p class="mt-2 text-gray-600 font-fa" data-lang="results_subtitle">فیلترها رو تنظیم کن تا بهترین هم‌اتاقی رو پیدا کنی</p>
+        <div id="roommates-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+        <div id="suggested-roommates" class="grid grid-cols-2 gap-4 mt-6"></div>
+    </section>
+
+    <section id="home" class="min-h-screen flex flex-col items-center bg-gray-100 hidden py-8">
+        <h2 class="text-2xl font-bold text-gray-800" data-lang="room_capacity">ظرفیت اتاق</h2>
+        <div id="home-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+        <div class="w-full max-w-md mt-6">
+            <div class="relative bg-gray-200 h-4 rounded-full">
+                <div id="capacity-bar" class="capacity-bar bg-blue-500 h-full rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="capacity-text" class="capacity-text text-center text-gray-600 mt-2 font-fa">0 از 0 نفر</p>
+            <h3 class="mt-6 text-lg font-semibold text-gray-800 font-fa">هم‌اتاقی‌های فعلی</h3>
+            <div id="current-roommates" class="grid grid-cols-2 gap-4 mt-4"></div>
+        </div>
+    </section>
+
+    <section id="profile" class="min-h-screen flex flex-col items-center bg-gray-100 hidden py-8">
+        <h2 class Highest match percentage: 2xl font-bold text-gray-800" data-lang="profile_title">پروفایل</h2>
+        <div id="profile-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+        <div class="max-w-md w-full bg-white p-6 rounded-lg shadow mt-6">
+            <div class="space-y-4">
+                <p><span class="font-semibold font-fa">نام: </span><span id="profile-name">-</span></p>
+                <p><span class="font-semibold font-fa">رشته: </span><span id="profile-class">-</span></p>
+                <p><span class="font-semibold font-fa">شماره دانشجویی: </span><span id="profile-student-id">-</span></p>
+                <p><span class="font-semibold font-fa">جنسیت: </span><span id="profile-gender">-</span></p>
+                <p><span class="font-semibold font-fa">ایمیل: </span><span id="profile-email">-</span></p>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی</h3>
+                <div class="space-y-2 mt-2">
+                    <p><span class="font-fa">بهداشت: </span><span id="hygiene-result">-</span></p>
+                    <p><span class="font-fa">رفیق‌بازی: </span><span id="socializing-result">-</span></p>
+                    <p><span class="font-fa">دخانیات: </span><span id="smoking-result">-</span></p>
+                    <p><span class="font-fa">سر و صدا: </span><span id="noise-result">-</span></p>
+                    <p><span class="font-fa">اعتقادات: </span><span id="beliefs-result">-</span></p>
+                    <p><span class="font-fa">ساعت خواب: </span><span id="sleep-result">-</span></p>
+                </div>
+            </div>
+            <button onclick="navigateTo('quiz')" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="edit_test">ویرایش تست هم‌اتاقی</button>
+            <button onclick="handleLogout()" class="w-full mt-4 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 font-fa" data-lang="logout">خروج از حساب کاربری</button>
+        </div>
+    </section>
+
+    <section id="roommate-profile" class="min-h-screen flex flex-col items-center bg-gray-100 hidden py-8">
+        <h2 class="text-2xl font-bold text-gray-800" data-lang="profile_title">پروفایل هم‌اتاقی</h2>
+        <div id="roommate-profile-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
+        <div class="max-w-md w-full bg-white p-6 rounded-lg shadow mt-6">
+            <div class="space-y-4">
+                <p><span class="font-semibold font-fa">نام: </span><span id="roommate-name">-</span></p>
+                <p><span class="font-semibold font-fa">رشته: </span><span id="roommate-description">-</span></p>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی</h3>
+                <div class="space-y-2 mt-2">
+                    <p><span class="font-fa">ساعت خواب: </span><span id="roommate-sleep-result">-</span></p>
+                    <p><span class="font-fa">بهداشت: </span><span id="roommate-cleanliness-result">-</span></p>
+                    <p><span class="font-fa">رفیق‌بازی: </span><span id="roommate-social-result">-</span></p>
+                    <p><span class="font-fa">دخانیات: </span><span id="roommate-smoking-result">-</span></p>
+                    <p><span class="font-fa">سر و صدا: </span><span id="roommate-noise-result">-</span></p>
+                    <p><span class="font-fa">اعتقادات: </span><span id="roommate-beliefs-result">-</span></p>
+                </div>
+            </div>
+            <div class="flex space-x-2 mt-6">
+                <button onclick="acceptRoommate()" class="flex-1 bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 font-fa" data-lang="accept">پذیرش</button>
+                <button onclick="rejectRoommate()" class="flex-1 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 font-fa" data-lang="reject">رد کردن</button>
+            </div>
+    </section>
+
+    <script src="script_dashboard.js"></script>
+</body>
+</html>
