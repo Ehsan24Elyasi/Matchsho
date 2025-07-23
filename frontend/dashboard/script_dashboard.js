@@ -3,7 +3,8 @@ const API_BASE_URL = 'http://localhost:8000';
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
 let currentRoommateId = null;
 let currentLang = localStorage.getItem('language') || 'fa';
-let isNewUser = localStorage.getItem('isNewUser') === 'true' || false; 
+let isNewUser = localStorage.getItem('isNewUser') === 'true' || false;
+let isUpdatingRoomCapacity = false;
 
 document.documentElement.lang = currentLang;
 document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -45,6 +46,9 @@ const translations = {
         profile_updated: 'پروفایل به‌روزرسانی شد',
         accept: 'پذیرش',
         reject: 'رد کردن',
+        admin_login_title: 'ورود ادمین',
+        rooms_title: 'لیست اتاق‌ها و افراد',
+        back_to_user_login: 'بازگشت به ورود کاربر',
         errors: {
             missing_fields: 'لطفاً تمام فیلدها را پر کنید!',
             password_mismatch: 'رمزهای عبور مطابقت ندارند!',
@@ -55,7 +59,8 @@ const translations = {
             user_in_room: 'کاربر مورد نظر در یک اتاق قرار دارد و تمایلی به اضافه شدن به اتاق جدید ندارد',
             quiz_incomplete: 'لطفاً به تمام سوالات پاسخ دهید!',
             server_error: 'خطای سرور رخ داد، لطفاً دوباره تلاش کنید!',
-            no_matches: 'هیچ هم‌اتاقی پیشنهادی یافت نشد یا خطای سرور رخ داد!'
+            no_matches: 'هیچ هم‌اتاقی پیشنهادی یافت نشد یا خطای سرور رخ داد!',
+            unauthorized: 'دسترسی غیرمجاز! لطفاً دوباره وارد شوید.'
         }
     },
     en: {
@@ -94,6 +99,9 @@ const translations = {
         profile_updated: 'Profile updated',
         accept: 'Accept',
         reject: 'Reject',
+        admin_login_title: 'Admin Login',
+        rooms_title: 'List of Rooms and Users',
+        back_to_user_login: 'Back to User Login',
         errors: {
             missing_fields: 'Please fill in all fields!',
             password_mismatch: 'Passwords do not match!',
@@ -104,7 +112,8 @@ const translations = {
             user_in_room: 'The selected user is already in a room and is not available to join a new one',
             quiz_incomplete: 'Please answer all questions!',
             server_error: 'Server error occurred, please try again!',
-            no_matches: 'No suggested roommates found or server error occurred!'
+            no_matches: 'No suggested roommates found or server error occurred!',
+            unauthorized: 'Unauthorized access! Please log in again.'
         }
     }
 };
@@ -166,34 +175,46 @@ const updateLanguage = () => {
 };
 
 const navigateTo = (sectionId) => {
-    console.log(`Navigating to ${sectionId}, currentUser:`, currentUser, `isNewUser: ${isNewUser}`);
+    console.log(`Navigating to ${sectionId}, currentUser:`, currentUser, `isNewUser: ${isNewUser}, admin_token:`, localStorage.getItem('admin_token'));
+    const isAdminPage = window.location.pathname.includes('admin.html');
+
+    if (isAdminPage && ['login', 'signup', 'quiz', 'home', 'roommates', 'profile', 'roommate-profile'].includes(sectionId)) {
+        console.log(`Redirecting to dashboard.html#${sectionId} since section is not in admin.html`);
+        window.location.href = `./dashboard.html#${sectionId}`;
+        return;
+    }
+
     document.querySelectorAll('section').forEach(section => section.classList.add('hidden'));
     const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // به‌روزرسانی هش URL
         window.location.hash = sectionId;
 
-        updateNavigation(sectionId);
-        renderNavigation();
+        if (!['admin-login', 'admin-rooms'].includes(sectionId)) {
+            updateNavigation(sectionId);
+            renderNavigation();
+        }
+
         if (sectionId === 'quiz') {
             loadQuizQuestions();
         } else if (sectionId === 'roommates' && currentUser && !isNewUser) {
             displaySuggestedRoommates();
         } else if (sectionId === 'home' && currentUser && !isNewUser) {
-            updateRoomCapacity();
+            debouncedUpdateRoomCapacity();
         } else if (sectionId === 'profile' && currentUser) {
             updateProfilePage();
+        } else if (sectionId === 'admin-rooms') {
+            loadAdminRooms();
         }
     } else {
         console.error(`Section ${sectionId} not found`);
         showError('user_not_found');
+        window.location.hash = isAdminPage ? 'admin-login' : 'login';
+        navigateTo(isAdminPage ? 'admin-login' : 'login');
     }
 };
-
-
 
 const updateNavigation = (sectionId) => {
     const sectionsWithNav = ['home', 'roommates', 'profile', 'quiz', 'roommate-profile'];
@@ -268,12 +289,114 @@ const handleLanguageToggle = debounce(() => {
     announceChange(translations[currentLang].language_changed || 'Language changed');
 }, 200);
 
+const handleAdminLogin = async () => {
+    const email = sanitizeInput(document.getElementById('admin-email').value.trim());
+    const password = sanitizeInput(document.getElementById('admin-password').value.trim());
+
+    if (!email || !password) {
+        showError('missing_fields', 'admin-login');
+        return;
+    }
+
+    try {
+        showLoading();
+        console.log('Attempting admin login with:', { email });
+        const response = await fetch(`${API_BASE_URL}/admin/login/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Admin login failed');
+        }
+        const data = await response.json();
+        localStorage.setItem('admin_token', data.token);
+        console.log('Admin login successful, token:', data.token);
+        navigateTo('admin-rooms');
+    } catch (error) {
+        console.error('Admin login error:', error.message);
+        showError('invalid_login', 'admin-login');
+    } finally {
+        hideLoading();
+    }
+};
+
+const handleAdminLogout = () => {
+    localStorage.removeItem('admin_token');
+    navigateTo('admin-login');
+    announceChange(translations[currentLang].logged_out);
+};
+
+const loadAdminRooms = async () => {
+    const token = localStorage.getItem('admin_token');
+    console.log('Admin token:', token);
+    if (!token) {
+        showError('unauthorized', 'admin-rooms');
+        setTimeout(() => navigateTo('admin-login'), 3000);
+        return;
+    }
+
+    try {
+        showLoading();
+        const response = await fetch(`${API_BASE_URL}/admin/rooms/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        console.log('Admin rooms response status:', response.status);
+        if (!response.ok) {
+            if (response.status === 403) {
+                showError('unauthorized', 'admin-rooms');
+                setTimeout(() => navigateTo('admin-login'), 3000);
+                return;
+            }
+            throw new Error('Failed to fetch rooms');
+        }
+        const rooms = await response.json();
+        console.log('Admin rooms data:', rooms);
+        const tableBody = document.getElementById('rooms-table-body');
+        tableBody.innerHTML = '';
+        if (rooms.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-600 font-fa">هیچ اتاقی یافت نشد</td></tr>';
+        } else {
+            rooms.forEach(room => {
+                const ownerName = room.owner ? sanitizeInput(room.owner.name) : 'نامشخص';
+                const roommates = room.roommates.length > 0 ? room.roommates.map(rm => sanitizeInput(rm.user.name)).join(', ') : 'هیچکس';
+                const row = `
+                    <tr class="hover:bg-gray-100">
+                        <td class="border p-3">${room.id}</td>
+                        <td class="border p-3">${room.capacity || 'نامشخص'}</td>
+                        <td class="border p-3">${roommates}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+        announceChange(translations[currentLang].rooms_title);
+    } catch (error) {
+        console.error('Error loading admin rooms:', error.message);
+        showError('server_error', 'admin-rooms');
+    } finally {
+        hideLoading();
+    }
+};
+
 const handleLogout = () => {
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isNewUser');
+    localStorage.removeItem('admin_token');
     currentUser = null;
     isNewUser = false;
-    navigateTo('login');
+    const isAdminPage = window.location.pathname.includes('admin.html');
+    if (isAdminPage) {
+        console.log('Logging out from admin.html, redirecting to dashboard.html#login');
+        window.location.href = './dashboard.html#login';
+    } else {
+        navigateTo('login');
+    }
     announceChange(translations[currentLang].logged_out);
 };
 
@@ -300,7 +423,7 @@ const handleLogin = async () => {
         isNewUser = false;
         navigateTo('home');
         updateProfilePage();
-        updateRoomCapacity();
+        debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
         console.error('Login error:', error.message);
@@ -450,7 +573,7 @@ const saveQuizResults = async () => {
         isNewUser = false;
         navigateTo('home');
         updateProfilePage();
-        updateRoomCapacity();
+        debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
         console.error('Save quiz error:', error.message);
@@ -506,11 +629,16 @@ const updateProfilePage = async () => {
 };
 
 const updateRoomCapacity = async () => {
-    if (!currentUser) {
-        console.error('No currentUser found');
+    if (isUpdatingRoomCapacity) {
+        console.log('updateRoomCapacity already in progress, skipping');
         return;
     }
+    isUpdatingRoomCapacity = true;
     try {
+        if (!currentUser) {
+            console.error('No currentUser found');
+            return;
+        }
         showLoading();
         console.log(`Fetching room data for user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
@@ -522,7 +650,7 @@ const updateRoomCapacity = async () => {
             throw new Error(errorData.detail || 'Room not found');
         }
         const room = await response.json();
-        console.log('Room data:', room);
+        console.log('Room data:', JSON.stringify(room, null, 2));
 
         const capacityBar = document.getElementById('capacity-bar');
         const capacityText = document.getElementById('capacity-text');
@@ -539,7 +667,7 @@ const updateRoomCapacity = async () => {
         }
 
         const roommates = room.roommates || [];
-        console.log('Roommates:', roommates);
+        console.log('Roommates:', JSON.stringify(roommates, null, 2));
         const capacity = room.capacity || 1;
         const percentage = (roommates.length / capacity) * 100;
 
@@ -552,7 +680,7 @@ const updateRoomCapacity = async () => {
             console.log('No roommates found');
         } else {
             const matchPromises = roommates.map(async (roommate) => {
-                console.log('Processing roommate:', roommate);
+                console.log('Processing roommate:', JSON.stringify(roommate, null, 2));
                 if (!roommate.user || !roommate.user.id) {
                     console.warn(`Roommate ${roommate.id} has invalid or missing user data:`, roommate.user);
                     return null;
@@ -576,13 +704,16 @@ const updateRoomCapacity = async () => {
             });
 
             const roommateData = (await Promise.all(matchPromises)).filter(data => data !== null);
-            console.log('Filtered roommate data:', roommateData);
+            console.log('Filtered roommate data:', JSON.stringify(roommateData, null, 2));
 
             if (roommateData.length === 0) {
                 currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ هم‌اتاقی فعلی وجود ندارد.</p>';
                 console.log('No valid roommate data after filtering');
             } else {
-                roommateData.forEach(data => {
+                const uniqueRoommateData = Array.from(new Set(roommateData.map(data => data.roommateId)))
+                    .map(id => roommateData.find(data => data.roommateId === id));
+
+                uniqueRoommateData.forEach(data => {
                     const card = document.createElement('div');
                     card.className = 'roommate-card';
                     card.innerHTML = `
@@ -617,8 +748,11 @@ const updateRoomCapacity = async () => {
         }
     } finally {
         hideLoading();
+        isUpdatingRoomCapacity = false;
     }
 };
+
+const debouncedUpdateRoomCapacity = debounce(updateRoomCapacity, 300);
 
 const displaySuggestedRoommates = async () => {
     if (!currentUser || !currentUser.id) {
@@ -753,7 +887,7 @@ const acceptRoommate = async () => {
         const newRoommate = await response.json();
         console.log('New roommate added:', newRoommate);
         navigateTo('home');
-        updateRoomCapacity();
+        debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
         announceChange(translations[currentLang].roommate_added);
     } catch (error) {
@@ -804,7 +938,7 @@ const removeRoommate = async (roommateId) => {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.detail || 'Failed to remove roommate');
         }
-        updateRoomCapacity();
+        debouncedUpdateRoomCapacity();
         announceChange(translations[currentLang].roommate_removed);
     } catch (error) {
         console.error('Remove roommate error:', error.message);
@@ -815,7 +949,9 @@ const removeRoommate = async (roommateId) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded triggered, currentUser:', currentUser, 'isNewUser:', isNewUser);
+    console.log('DOMContentLoaded triggered');
+    console.log('Current state:', { currentUser, isNewUser, admin_token: localStorage.getItem('admin_token'), hash: window.location.hash });
+
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
     }
@@ -840,17 +976,81 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (!currentUser) {
-        console.log('No currentUser, navigating to splash');
-        navigateTo('splash');
-        setTimeout(() => navigateTo('login'), 0);
-    } else if (isNewUser) {
-        console.log('New user, navigating to quiz');
-        navigateTo('quiz');
+    const isAdminPage = window.location.pathname.includes('admin.html');
+    const hash = window.location.hash.replace('#', '');
+    const validSections = isAdminPage
+        ? ['admin-login', 'admin-rooms']
+        : ['login', 'signup', 'quiz', 'home', 'roommates', 'profile', 'roommate-profile'];
+    const token = localStorage.getItem('admin_token');
+
+    if (validSections.includes(hash)) {
+        console.log(`Navigating to ${hash} based on URL hash`);
+        if (isAdminPage && hash === 'admin-rooms' && !token) {
+            console.log('No admin token, redirecting to admin-login');
+            navigateTo('admin-login');
+        } else if (!isAdminPage && ['home', 'roommates', 'profile', 'roommate-profile'].includes(hash) && !currentUser) {
+            console.log('No current user, redirecting to login');
+            navigateTo('login');
+        } else if (!isAdminPage && hash === 'quiz' && !isNewUser && !currentUser) {
+            console.log('Not a new user and no current user, redirecting to login');
+            navigateTo('login');
+        } else {
+            navigateTo(hash);
+        }
     } else {
-        console.log('Existing user, navigating to home');
-        navigateTo('home');
+        console.log('No valid hash, checking user and admin status');
+        if (isAdminPage) {
+            if (token) {
+                console.log('Admin token found, navigating to admin-rooms');
+                navigateTo('admin-rooms');
+            } else {
+                console.log('No admin token, navigating to admin-login');
+                navigateTo('admin-login');
+            }
+        } else {
+            if (!currentUser) {
+                console.log('No currentUser, navigating to login');
+                navigateTo('login');
+            } else if (isNewUser) {
+                console.log('New user, navigating to quiz');
+                navigateTo('quiz');
+            } else {
+                console.log('Existing user, navigating to home');
+                navigateTo('home');
+            }
+        }
     }
 
-    renderNavigation();
+    if (!isAdminPage) {
+        renderNavigation();
+    }
+});
+
+window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '');
+    const isAdminPage = window.location.pathname.includes('admin.html');
+    const validSections = isAdminPage
+        ? ['admin-login', 'admin-rooms']
+        : ['login', 'signup', 'quiz', 'home', 'roommates', 'profile', 'roommate-profile'];
+    const token = localStorage.getItem('admin_token');
+
+    console.log('Hash changed to:', hash);
+    if (validSections.includes(hash)) {
+        console.log(`Navigating to ${hash}`);
+        if (isAdminPage && hash === 'admin-rooms' && !token) {
+            console.log('No admin token, redirecting to admin-login');
+            navigateTo('admin-login');
+        } else if (!isAdminPage && ['home', 'roommates', 'profile', 'roommate-profile'].includes(hash) && !currentUser) {
+            console.log('No current user, redirecting to login');
+            navigateTo('login');
+        } else if (!isAdminPage && hash === 'quiz' && !isNewUser && !currentUser) {
+            console.log('Not a new user and no current user, redirecting to login');
+            navigateTo('login');
+        } else {
+            navigateTo(hash);
+        }
+    } else {
+        console.log('Invalid hash, navigating to default');
+        navigateTo(isAdminPage ? 'admin-login' : 'login');
+    }
 });
