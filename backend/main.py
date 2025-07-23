@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session, joinedload
 from database import Base, engine, get_db, SessionLocal
 from models import User as UserModel, Room as RoomModel, Roommate as RoommateModel, Question as QuestionModel, Answer as AnswerModel, RejectedRoommate as RejectedRoommateModel
-from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse
+from schemas import UserCreate, User, Room, Roommate, RoommateBase, Question, Answer, AnswerBase, LoginRequest, MatchResponse, AdminLoginRequest
 from typing import List
+from passlib.context import CryptContext
 import logging
 import traceback
 
@@ -30,6 +32,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# تنظیمات هش رمز عبور
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# تنظیم OAuth2 برای استخراج توکن
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/admin/login/")
+
 Base.metadata.create_all(bind=engine)
 
 # Initialize questions
@@ -48,10 +56,35 @@ def init_questions(db: Session):
             db.add(QuestionModel(text=text))
     db.commit()
 
+# Initialize admin user
+def init_admin(db: Session):
+    admin_email = "admin@example.com"
+    admin_password = pwd_context.hash("adminpassword")  # هش کردن رمز عبور ادمین
+    if not db.query(UserModel).filter(UserModel.email == admin_email).first():
+        db_admin = UserModel(
+            email=admin_email,
+            password=admin_password,
+            name="Admin",
+            class_name="Admin",
+            student_id="admin_001",
+            gender="male"
+        )
+        db.add(db_admin)
+        db.commit()
+        db_room = RoomModel(owner_id=db_admin.id)
+        db.add(db_room)
+        db.commit()
+        db.refresh(db_room)
+        db_roommate = RoommateModel(user_id=db_admin.id, room_id=db_room.id)
+        db.add(db_roommate)
+        db.commit()
+        logger.info(f"Admin user created with email: {admin_email}")
+
 @app.on_event("startup")
 def startup_event():
     db = SessionLocal()
     init_questions(db)
+    init_admin(db)
     db.close()
 
 @app.post("/users/", response_model=User)
@@ -61,7 +94,17 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="ایمیل قبلاً ثبت شده است")
     if db.query(UserModel).filter(UserModel.student_id == user.student_id).first():
         raise HTTPException(status_code=400, detail="شماره دانشجویی قبلاً ثبت شده است")
-    db_user = UserModel(**user.dict())
+    
+    # هش کردن رمز عبور
+    hashed_password = pwd_context.hash(user.password)
+    db_user = UserModel(
+        email=user.email,
+        password=hashed_password,
+        name=user.name,
+        class_name=user.class_name,
+        student_id=user.student_id,
+        gender=user.gender
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -80,8 +123,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 @app.post("/login/", response_model=User)
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     logger.info(f"Login attempt for email: {login_data.email}")
-    user = db.query(UserModel).filter(UserModel.email == login_data.email, UserModel.password == login_data.password).first()
-    if not user:
+    user = db.query(UserModel).filter(UserModel.email == login_data.email).first()
+    if not user or not pwd_context.verify(login_data.password, user.password):
         logger.error(f"Login failed for email: {login_data.email}")
         raise HTTPException(status_code=400, detail="ایمیل یا رمز عبور اشتباه است")
     return user
@@ -307,3 +350,27 @@ def calculate_match_percentage(user_answers: List[AnswerModel], potential_answer
 
     match_score = 1 - total_weighted_diff
     return round(match_score * 100, 2)
+
+# مسیرهای ادمین
+@app.post("/admin/login/")
+def admin_login(login_data: AdminLoginRequest, db: Session = Depends(get_db)):
+    logger.info(f"Admin login attempt for email: {login_data.email}")
+    admin = db.query(UserModel).filter(UserModel.email == login_data.email).first()
+    if not admin or not pwd_context.verify(login_data.password, admin.password):
+        logger.error(f"Admin login failed for email: {login_data.email}")
+        raise HTTPException(status_code=400, detail="ایمیل یا رمز عبور اشتباه است")
+    return {"token": "admin_token"}
+
+def get_admin_token(token: str = Depends(oauth2_scheme)):
+    if token != "admin_token":
+        raise HTTPException(status_code=403, detail="دسترسی غیرمجاز")
+    return token
+
+@app.get("/admin/rooms/", response_model=List[Room], dependencies=[Depends(get_admin_token)])
+def admin_rooms(db: Session = Depends(get_db)):
+    logger.info("Fetching all rooms for admin")
+    rooms = db.query(RoomModel).options(joinedload(RoomModel.roommates).joinedload(RoommateModel.user)).all()
+    if not rooms:
+        logger.info("No rooms found")
+        return []
+    return rooms

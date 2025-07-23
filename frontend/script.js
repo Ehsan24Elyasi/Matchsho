@@ -132,8 +132,27 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 splash.remove();
             }, 500); 
-        }, 100); // spalsh change
+        }, 1000); // spalsh change
     } else {
         console.error('Splash یا Main Content پیدا نشد');
     }
+
+    fetch('http://localhost:8000/login/', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        email: 'admin@example.com',
+        password: 'adminpassword'
+    })
+})
+.then(response => response.json())
+.then(data => {
+    console.log(data); // اطلاعات کاربر ادمین
+    localStorage.setItem('user', JSON.stringify(data)); // ذخیره اطلاعات کاربر
+})
+.catch(error => console.error('Error:', error));
+
+
 });

@@ -14,7 +14,7 @@
 
 @font-face {
     font-family: 'IRANYekanX';
-    src: url('../frontend/src/fonts/IRANYekanXFaNum-Regular.woff2') format('woff2');
+    src: url('../src/fonts/IRANYekanXFaNum-Bold.woff') format('woff2');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
@@ -22,7 +22,7 @@
 
 @font-face {
     font-family: 'IRANYekanX';
-    src: url('../frontend/src/fonts/IRANYekanXFaNum-Bold.woff2') format('woff2');
+    src: url('../src/fonts/IRANYekanXFaNum-Bold.woff2') format('woff2');
     font-weight: bold;
     font-style: normal;
     font-display: swap;
