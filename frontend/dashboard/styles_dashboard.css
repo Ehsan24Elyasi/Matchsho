@@ -33,7 +33,6 @@ body {
     background-color: var(--bg-light);
     color: var(--text-light);
     transition: background-color 0.5s, color 0.5s;
-    
 }
 
 body[lang="en"] {
@@ -248,7 +247,6 @@ input[type="radio"]:checked + label {
     align-items: center;
     justify-content: center;
     overflow: visible;
-
 }
 
 .profile-icon {
@@ -267,7 +265,6 @@ input[type="radio"]:checked + label {
     align-items: center;
     justify-content: center;
     overflow: visible; /* برای نمایش درصد در خارج دایره */
-    
 }
 
 .profile-icon {
