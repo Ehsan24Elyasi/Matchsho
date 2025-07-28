@@ -1,0 +1,366 @@
+@charset "UTF-8";
+
+/* Base Styles */
+:root {
+    --primary-color: #3b82f6;
+    --secondary-color: #f97316;
+    --bg-light: #f3f4f6;
+    --bg-dark: #1f2937;
+    --text-light: #1f2937;
+    --text-dark: #f3f4f6;
+    --card-bg-light: #ffffff;
+    --card-bg-dark: #374151;
+}
+
+@font-face {
+    font-family: 'IRANYekanX';
+    src: url('../src/fonts/IRANYekanXFaNum-Bold.woff') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'IRANYekanX';
+    src: url('../src/fonts/IRANYekanXFaNum-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+body {
+    font-family: 'IRANYekanX', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    transition: background-color 0.5s, color 0.5s;
+    
+}
+
+body[lang="en"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.font-fa {
+    font-family: 'IRANYekanX', sans-serif !important;
+}
+
+.font-en {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+}
+
+body.dark-mode .bg-white {
+    background-color: var(--card-bg-dark);
+}
+
+body.dark-mode .bg-gray-100 {
+    background-color: var(--bg-dark);
+}
+
+body.dark-mode .bg-gray-200 {
+    background-color: #4b5563;
+}
+
+body.dark-mode .text-gray-800 {
+    color: var(--text-dark);
+}
+
+body.dark-mode .text-gray-700,
+body.dark-mode .text-gray-600 {
+    color: #d1d5db;
+}
+
+body.dark-mode .border-blue-100 {
+    border-color: #4b5563;
+}
+
+body.dark-mode .hover\:bg-gray-300:hover {
+    background-color: #6b7280;
+}
+
+body.dark-mode .signup-error {
+    background-color: #7f1d1d;
+    color: var(--text-dark);
+}
+
+body.dark-mode .capacity-bar {
+    fill: #60a5fa;
+}
+
+body.dark-mode .capacity-text {
+    color: #d1d5db;
+}
+
+body.dark-mode .match-percentage {
+    background-color: #60a5fa;
+}
+
+body.dark-mode .roommate-card {
+    background-color: var(--card-bg-dark);
+    border-color: #4b5563;
+}
+
+body.dark-mode .bottom-nav {
+    background-color: var(--card-bg-dark);
+}
+
+body.dark-mode button.bg-blue-500:hover {
+    background-color: #2563eb;
+}
+
+body.dark-mode button.bg-green-500:hover {
+    background-color: #16a34a;
+}
+
+body.dark-mode button.bg-red-500:hover {
+    background-color: #dc2626;
+}
+
+/* Components */
+input[type="radio"]:checked + label {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+#gender-male.active, #gender-female.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(90%, 360px);
+    padding: 10px 0;
+    border-radius: 50px;
+    background-color: var(--card-bg-light);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.bottom-nav button {
+    transition: color 0.3s, background-color 0.3s;
+}
+
+.bottom-nav button.active {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.bottom-nav button.active svg {
+    stroke-width: 3;
+}
+
+.bottom-nav span {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.roommate-card {
+    background-color: var(--card-bg-light);
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    padding: 0.75rem;
+    transition: transform 0.3s;
+    width: min(100%, 200px);
+    text-align: center;
+    position: relative;
+}
+
+.roommate-card:hover {
+    transform: translateY(-5px);
+}
+
+.roommate-card .profile-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.roommate-card .profile-icon {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    z-index: 10;
+}
+
+/* جایگزینی یا به‌روزرسانی در styles.css */
+.progress-circle {
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    z-index: 5;
+    transform: rotate(-90deg);
+}
+
+.progress-circle circle {
+    transition: stroke-dasharray 0.3s ease-in-out;
+}
+
+.progress-circle circle:first-child {
+    stroke: transparent; /* پس‌زمینه دایره کاملاً شفاف */
+}
+
+.progress-circle circle:last-child {
+    stroke: #3b82f6; /* رنگ قسمت پرشده */
+    stroke-width: 8;
+    stroke-linecap: round; /* گرد کردن ابتدا و انتهای نوار */
+}
+
+.match-percentage {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #3b82f6;
+    color: white;
+    font-weight: 1000;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 40%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 45px;
+    height: 29px;
+    margin-bottom: 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+}
+
+.profile-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+
+}
+
+.profile-icon {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    z-index: 10;
+}
+
+.profile-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible; /* برای نمایش درصد در خارج دایره */
+    
+}
+
+.profile-icon {
+    position: absolute;
+    width: 60px; /* اندازه بزرگ‌تر برای تطابق */
+    height: 60px;
+    z-index: 10;
+}
+
+.signup-error {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.remove-roommate-btn {
+    background-color: #C70000    ;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    transition: background-color 0.3s;
+    font-size: 0.75rem;
+}
+
+.remove-roommate-btn:hover {
+    background-color: #770000
+    ;
+}
+
+.capacity-bar {
+    transition: width 0.5s ease;
+}
+
+.capacity-text {
+    transition: color 0.5s;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Utilities */
+button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .bottom-nav {
+        width: 100%;
+        border-radius: 0;
+        bottom: 0;
+        padding: 8px 0;
+    }
+
+    .roommate-card {
+        width: 100%;
+    }
+
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .max-w-xs,
+    .max-w-sm,
+    .max-w-md {
+        width: 100%;
+        padding: 0 16px;
+    }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+    .bottom-nav {
+        width: 80%;
+    }
+
+    .roommate-card {
+        width: 180px;
+    }
+}

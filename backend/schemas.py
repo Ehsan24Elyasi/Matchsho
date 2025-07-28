@@ -16,7 +16,7 @@ class User(UserBase):
     password: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RoomBase(BaseModel):
     capacity: Optional[int] = None
@@ -27,7 +27,7 @@ class Room(RoomBase):
     roommates: List['Roommate'] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class RoommateBase(BaseModel):
     user_id: int
@@ -38,7 +38,7 @@ class Roommate(RoommateBase):
     user: User
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class QuestionBase(BaseModel):
     text: str
@@ -47,7 +47,7 @@ class Question(QuestionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AnswerBase(BaseModel):
     user_id: int
@@ -58,7 +58,7 @@ class Answer(AnswerBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class LoginRequest(BaseModel):
     email: str
@@ -69,4 +69,8 @@ class MatchResponse(BaseModel):
     match_percentage: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
