@@ -5,12 +5,12 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    password = Column(String)
-    name = Column(String)
-    class_name = Column(String)
-    student_id = Column(String, unique=True)
-    gender = Column(String)
+    email = Column(String(255), unique=True, index=True)  # طول 255
+    password = Column(String(255))  # طول 255
+    name = Column(String(100))  # طول 100
+    class_name = Column(String(100))  # طول 100
+    student_id = Column(String(20), unique=True)  # طول 20
+    gender = Column(String(20))  # طول 20
     rooms = relationship("Room", back_populates="owner")
     roommates = relationship("Roommate", back_populates="user")
     answers = relationship("Answer", back_populates="user")
@@ -36,7 +36,7 @@ class Roommate(Base):
 class Question(Base):
     __tablename__ = "questions"
     id = Column(Integer, primary_key=True, index=True)
-    text = Column(String)
+    text = Column(String(255))  # طول 255 برای متن سوالات
     answers = relationship("Answer", back_populates="question")
 
 class Answer(Base):
