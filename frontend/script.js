@@ -136,26 +136,4 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('Splash یا Main Content پیدا نشد');
     }
-<<<<<<< HEAD
-=======
-
-    fetch('http://localhost:8000/login/', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        email: 'admin@example.com',
-        password: 'adminpassword'
-    })
-})
-.then(response => response.json())
-.then(data => {
-    console.log(data); // اطلاعات کاربر ادمین
-    localStorage.setItem('user', JSON.stringify(data)); // ذخیره اطلاعات کاربر
-})
-.catch(error => console.error('Error:', error));
-
-
->>>>>>> 3c14f4ac26d1beabad820f23a18a70842fd58450
 });
