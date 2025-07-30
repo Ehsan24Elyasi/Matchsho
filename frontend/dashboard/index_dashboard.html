@@ -11,7 +11,7 @@
 
     <section id="login" class="min-h-screen flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 font-fa" data-lang="login_title">ورود</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 font-fa text-center" data-lang="login_title">ورود</h2>
             <div id="login-error" class="text-red-500 mb-4 hidden font-fa"></div>
             <form id="login-form" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
                 <div>
@@ -23,18 +23,21 @@
                     <input id="login-password" type="password" class="w-full p-2 mt-1 border rounded-lg font-fa focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
                 <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition font-fa" data-lang="login_btn">ورود</button>
-                <a href="#signup" class="text-blue-500 hover:underline font-fa">حساب کاربری ندارید؟ ساخت حساب کاربری</a>
+                <div class="text-center">
+                <span>   حساب کاربری ندارید؟   </span>
+                <a href="#signup" class="text-blue-500 hover:text-blue-800 font-fa mr-2"> ساخت حساب کاربری</a>
+                </div>
             </form>
         </div>
     </section>
 
     <section id="signup" class="min-h-screen flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 font-fa" data-lang="signup_title">ثبت‌نام</h2>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4 font-fa text-center" data-lang="signup_title">ثبت‌نام</h2>
             <div id="signup-error" class="text-red-500 mb-4 hidden font-fa"></div>
             <form id="signup-form" onsubmit="event.preventDefault(); saveUserInfo();" class="space-y-4">
                 <div>
-                    <label for="signup-email" class="block text-gray-700 font-fa" data-lang="email">ایمیل *</label>
+                    <label for="signup-email" class="block text-gray-700 font-fa" data-lang="email">ایمیل </label>
                     <input id="signup-email" type="email" class="w-full p-2 mt-1 border rounded-lg font-fa focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 </div>
                 <div>
@@ -74,16 +77,15 @@
 
     <section id="quiz" class="min-h-screen flex items-center justify-center bg-gray-100 hidden pb-24">
         <div class="max-w-md w-full bg-white p-8 rounded-lg shadow">
-            <h2 class="text-2xl font-bold text-center text-gray-800" data-lang="quiz_title">هم‌اتاقی ایده‌آلت رو پیدا کن</h2>
-            <p class="mt-4 text-center text-gray-600 font-fa" data-lang="quiz_subtitle">جواب دادن به این سوالات به ما کمک می‌کنه تا هم‌اتاقی مناسب رو برات پیدا کنیم.</p>
+            <h2 class="text-2xl font-bold text-center text-blue-600" data-lang="quiz_title">هم‌اتاقی ایده‌آلت رو پیدا کن</h2>
+            <p class="mt-4 text-center text-gray-500 font-fa" data-lang="quiz_subtitle">جواب دادن به این سوالات به ما کمک می‌کنه تا هم‌اتاقی مناسب رو برات پیدا کنیم.</p>
             <div id="quiz-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
             <div id="quiz-questions" class="mt-6"></div>
             <button onclick="saveQuizResults()" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="submit">پیدا کن!</button>
         </div>
     </section>
-
     <section id="roommates" class="min-h-screen flex flex-col items-center bg-gray-100 hidden py-8">
-        <h2 class="text-2xl font-bold text-gray-800" data-lang="results_title">هم‌اتاقی‌های پیشنهادی</h2>
+        <h2 class="text-3xl font-bold text-gray-800" data-lang="results_title">هم‌اتاقی‌های پیشنهادی</h2>
         <p class="mt-2 text-gray-600 font-fa" data-lang="results_subtitle">فیلترها رو تنظیم کن تا بهترین هم‌اتاقی رو پیدا کنی</p>
         <div id="roommates-error" class="signup-error hidden text-center text-sm text-red-600 mt-2"></div>
         <div id="suggested-roommates" class="grid grid-cols-2 gap-4 mt-6"></div>
@@ -114,14 +116,14 @@
                 <p><span class="font-semibold font-fa">ایمیل: </span><span id="profile-email">-</span></p>
             </div>
             <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی</h3>
+                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی🧪</h3>
                 <div class="space-y-2 mt-2">
-                    <p><span class="font-fa">بهداشت: </span><span id="hygiene-result">-</span></p>
-                    <p><span class="font-fa">رفیق‌بازی: </span><span id="socializing-result">-</span></p>
-                    <p><span class="font-fa">دخانیات: </span><span id="smoking-result">-</span></p>
-                    <p><span class="font-fa">سر و صدا: </span><span id="noise-result">-</span></p>
-                    <p><span class="font-fa">اعتقادات: </span><span id="beliefs-result">-</span></p>
-                    <p><span class="font-fa">ساعت خواب: </span><span id="sleep-result">-</span></p>
+                    <p><span class="font-fa">🧼 بهداشت: </span><span id="hygiene-result">-</span></p>
+                    <p><span class="font-fa"> 🎉 رفیق‌بازی: </span><span id="socializing-result">-</span></p>
+                    <p><span class="font-fa"> 🚬 دخانیات: </span><span id="smoking-result">-</span></p>
+                    <p><span class="font-fa"> 🔊 سر و صدا: </span><span id="noise-result">-</span></p>
+                    <p><span class="font-fa">📿 اعتقادات: </span><span id="beliefs-result">-</span></p>
+                    <p><span class="font-fa"> 💤 ساعت خواب: </span><span id="sleep-result">-</span></p>
                 </div>
             </div>
             <button onclick="navigateTo('quiz')" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="edit_test">ویرایش تست هم‌اتاقی</button>
@@ -138,14 +140,14 @@
                 <p><span class="font-semibold font-fa">رشته: </span><span id="roommate-description">-</span></p>
             </div>
             <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی</h3>
+                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی🧪</h3>
                 <div class="space-y-2 mt-2">
-                    <p><span class="font-fa">ساعت خواب: </span><span id="roommate-sleep-result">-</span></p>
-                    <p><span class="font-fa">بهداشت: </span><span id="roommate-cleanliness-result">-</span></p>
-                    <p><span class="font-fa">رفیق‌بازی: </span><span id="roommate-social-result">-</span></p>
-                    <p><span class="font-fa">دخانیات: </span><span id="roommate-smoking-result">-</span></p>
-                    <p><span class="font-fa">سر و صدا: </span><span id="roommate-noise-result">-</span></p>
-                    <p><span class="font-fa">اعتقادات: </span><span id="roommate-beliefs-result">-</span></p>
+                    <p><span class="font-fa">💤 ساعت خواب: </span><span id="roommate-sleep-result">-</span></p>
+                    <p><span class="font-fa">🧼 بهداشت: </span><span id="roommate-cleanliness-result">-</span></p>
+                    <p><span class="font-fa">🎉 رفیق‌بازی: </span><span id="roommate-social-result">-</span></p>
+                    <p><span class="font-fa">🚬 دخانیات: </span><span id="roommate-smoking-result">-</span></p>
+                    <p><span class="font-fa">🔊 سر و صدا: </span><span id="roommate-noise-result">-</span></p>
+                    <p><span class="font-fa">📿 اعتقادات: </span><span id="roommate-beliefs-result">-</span></p>
                 </div>
             </div>
             <div class="flex space-x-2 mt-6">

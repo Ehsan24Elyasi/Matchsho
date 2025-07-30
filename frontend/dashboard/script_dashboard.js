@@ -724,9 +724,7 @@ const updateRoomCapacity = async () => {
                                 <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="${data.matchPercentage * 2.51}, 251.2"/>
                             </svg>
                             ` : ''}
-                            <svg class="profile-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="آیکون پروفایل">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
+                            <img src="${data.user.gender === 'male' ? '../src/avatar-male.png' : '../src/avatar-female-3d.png'}" class="profile-icon" alt="آیکون پروفایل" style="width: 75px; height: 75px;">
                             <span class="match-percentage">${data.matchPercentage !== 'N/A' ? data.matchPercentage + '%' : 'N/A'}</span>
                         </div>
                         <h3 class="text-sm font-semibold text-gray-800 font-fa mt-4">${sanitizeInput(data.user.name)}</h3>
@@ -794,9 +792,7 @@ const displaySuggestedRoommates = async () => {
                         <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
                         <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="${match.match_percentage * 2.51}, 251.2"/>
                     </svg>
-                    <svg class="profile-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="آیکون پروفایل">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <img src="${user.gender === 'male' ? '../src/avatar-male.png' : '../src/avatar-female-3d.png'}" class="profile-icon" alt="آیکون پروفایل" style="width: 75px; height: 75px;">
                     <span class="match-percentage">${match.match_percentage}%</span>
                 </div>
                 <h3 class="text-sm font-semibold text-gray-800 font-fa mt-4">${sanitizeInput(user.name)}</h3>
@@ -846,6 +842,19 @@ const viewRoommateProfile = async (roommateId) => {
             const element = document.getElementById(id);
             if (element) element.textContent = value;
         });
+        const roommateProfileDiv = document.getElementById('roommate-profile');
+        if (roommateProfileDiv) {
+            const existingAvatar = roommateProfileDiv.querySelector('.profile-icon');
+            if (existingAvatar) existingAvatar.remove();
+            const profileContainer = roommateProfileDiv.querySelector('.profile-container');
+            if (profileContainer) {
+                const avatarImg = document.createElement('img');
+                avatarImg.src = `${roommate.gender === 'male' ? '../src/avatar-male.png' : '../src/avatar-female-3d.png'}`;
+                avatarImg.className = 'profile-icon';
+                avatarImg.setAttribute('alt', 'آیکون پروفایل');
+                profileContainer.appendChild(avatarImg);
+            }
+        }
 
         navigateTo('roommate-profile');
     } catch (error) {
