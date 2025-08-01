@@ -124,7 +124,7 @@ If you have any questions, suggestions, or want to contribute, feel free to reac
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE%20.txt) file for details.
 
 ---
 
