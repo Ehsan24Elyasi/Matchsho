@@ -22,6 +22,93 @@
 - 🔐 **Privacy Focused** – All data is stored securely and only accessible by admins.
 
 ---
+## 🚀 Deployment on Linux Server
+Follow these steps to deploy Matchsho on a Linux server (e.g., with SSH access).
+
+### 🔧 Prerequisites
+
+- SSH access to the server
+- Python 3.11+ installed on the server
+- MySQL Server on the host
+- Git installed on the server
+
+### 📥 Clone the Repository
+
+```bash
+git clone https://github.com/Ehsan24Elyasi/matchsho.git
+cd matchsho/backend
+```
+### 🛠️ Setup
+1. Create a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+2. Install dependencies:
+```bash
+   pip install -r requirements.txt
+```
+
+3. Create a MySQL database (e.g., matchsho_db) and a user (e.g., matchsho_user) with a secure password.
+
+4. Configure .env in the backend directory:
+```bash
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=matchsho_user
+MYSQL_PASSWORD=your_secure_password
+MYSQL_DATABASE=matchsho_db
+```
+5. Create database tables:
+```bash
+python3 -c "from database import Base, engine; Base.metadata.create_all(bind=engine)"
+```
+
+## ▶️ Run the Application
+
+1. Edit start.sh with the correct virtual environment path (e.g., /home/yourusername/venv/bin/activate):
+```bash
+#!/bin/bash
+source /home/yourusername/venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+2. Make it executable and run:
+```bash
+chmod +x start.sh
+./start.sh  
+```
+
+3. (Optional) For continuous running, set up supervisor:
+```bash
+sudo apt update
+sudo apt install supervisor
+sudo nano /etc/supervisor/conf.d/matchsho.conf
+```
+Content:
+
+```bash
+[program:matchsho]
+command=/home/yourusername/matchsho/backend/start.sh
+directory=/home/yourusername/matchsho/backend
+autostart=true
+autorestart=true
+```
+
+Save and reload:
+```bash
+sudo supervisorctl reload
+```
+
+
+## 🌐 Access the Site
+- Ensure port 8000 is open in the firewall (sudo ufw allow 8000).
+- Configure the domain (e.g., yourdomain.com) to point to the backend directory.
+- Open http://yourdomain.com:8000 in a browser.
+
+---
 
 ## ⚙️ Installation & Running Locally
 
