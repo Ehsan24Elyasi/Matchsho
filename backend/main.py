@@ -36,6 +36,7 @@ app.add_middleware(
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # تنظیم OAuth2 برای استخراج توکن
+# Admin Token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/admin/login/")
 
 Base.metadata.create_all(bind=engine)

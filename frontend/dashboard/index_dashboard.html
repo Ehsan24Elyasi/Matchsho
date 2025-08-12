@@ -115,17 +115,42 @@
                 <p><span class="font-semibold font-fa">جنسیت: </span><span id="profile-gender">-</span></p>
                 <p><span class="font-semibold font-fa">ایمیل: </span><span id="profile-email">-</span></p>
             </div>
-            <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی🧪</h3>
-                <div class="space-y-2 mt-2">
-                    <p><span class="font-fa">🧼 بهداشت: </span><span id="hygiene-result">-</span></p>
-                    <p><span class="font-fa"> 🎉 رفیق‌بازی: </span><span id="socializing-result">-</span></p>
-                    <p><span class="font-fa"> 🚬 دخانیات: </span><span id="smoking-result">-</span></p>
-                    <p><span class="font-fa"> 🔊 سر و صدا: </span><span id="noise-result">-</span></p>
-                    <p><span class="font-fa">📿 اعتقادات: </span><span id="beliefs-result">-</span></p>
-                    <p><span class="font-fa"> 💤 ساعت خواب: </span><span id="sleep-result">-</span></p>
+
+        <div id="profile-test-results" class="mb-4">
+            <h3 class="text-xl font-bold mb-6 mt-4"> نتایج تست هم‌اتاقی : </h3>
+            <div class="grid grid-cols-3 gap-4 md:grid-cols-3 sm:grid-cols-2 xs:grid-cols-1">
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🧼</span> 
+                    <p class="text-sm font-medium">بهداشت</p>  
+                    <p class="font-bold" id="hygiene-result">-</p>  
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🎉</span>
+                    <p class="text-sm font-medium">رفیق‌بازی</p>
+                    <p class="font-bold" id="socializing-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🚬</span>
+                    <p class="text-sm font-medium">دخانیات</p>
+                    <p class="font-bold" id="smoking-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🔊</span>
+                    <p class="text-sm font-medium">سر و صدا</p>
+                    <p class="font-bold" id="noise-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">📿</span>
+                    <p class="text-sm font-medium">اعتقادات</p>
+                    <p class="font-bold" id="beliefs-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">💤</span>
+                    <p class="text-sm font-medium">ساعت خواب</p>
+                    <p class="font-bold" id="sleep-result">-</p>
                 </div>
             </div>
+        </div>
             <button onclick="navigateTo('quiz')" class="w-full mt-6 bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-fa" data-lang="edit_test">ویرایش تست هم‌اتاقی</button>
             <button onclick="handleLogout()" class="w-full mt-4 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 font-fa" data-lang="logout">خروج از حساب کاربری</button>
         </div>
@@ -139,17 +164,41 @@
                 <p><span class="font-semibold font-fa">نام: </span><span id="roommate-name">-</span></p>
                 <p><span class="font-semibold font-fa">رشته: </span><span id="roommate-description">-</span></p>
             </div>
-            <div class="mt-6">
-                <h3 class="text-lg font-semibold text-gray-800 font-fa">نتایج تست هم‌اتاقی🧪</h3>
-                <div class="space-y-2 mt-2">
-                    <p><span class="font-fa">💤 ساعت خواب: </span><span id="roommate-sleep-result">-</span></p>
-                    <p><span class="font-fa">🧼 بهداشت: </span><span id="roommate-cleanliness-result">-</span></p>
-                    <p><span class="font-fa">🎉 رفیق‌بازی: </span><span id="roommate-social-result">-</span></p>
-                    <p><span class="font-fa">🚬 دخانیات: </span><span id="roommate-smoking-result">-</span></p>
-                    <p><span class="font-fa">🔊 سر و صدا: </span><span id="roommate-noise-result">-</span></p>
-                    <p><span class="font-fa">📿 اعتقادات: </span><span id="roommate-beliefs-result">-</span></p>
+                    <div id="profile-test-results" class="mb-4">
+            <h3 class="text-xl font-bold mb-6 mt-4"> نتایج تست هم‌اتاقی : </h3>
+            <div class="grid grid-cols-3 gap-4 md:grid-cols-3 sm:grid-cols-2 xs:grid-cols-1">
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🧼</span> 
+                    <p class="text-sm font-medium">بهداشت</p>  
+                    <p class="font-bold" id="roommate-cleanliness-result">-</p>  
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🎉</span>
+                    <p class="text-sm font-medium">رفیق‌بازی</p>
+                    <p class="font-bold" id="roommate-social-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🚬</span>
+                    <p class="text-sm font-medium">دخانیات</p>
+                    <p class="font-bold" id="roommate-smoking-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">🔊</span>
+                    <p class="text-sm font-medium">سر و صدا</p>
+                    <p class="font-bold" id="roommate-noise-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">📿</span>
+                    <p class="text-sm font-medium">اعتقادات</p>
+                    <p class="font-bold" id="roommate-beliefs-result">-</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <span class="text-4xl mb-1">💤</span>
+                    <p class="text-sm font-medium">ساعت خواب</p>
+                    <p class="font-bold" id="roommate-sleep-result">-</p>
                 </div>
             </div>
+        </div>
             <div class="flex space-x-2 mt-6">
                 <button onclick="acceptRoommate()" class="flex-1 bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 font-fa" data-lang="accept">پذیرش</button>
                 <button onclick="rejectRoommate()" class="flex-1 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 font-fa" data-lang="reject">رد کردن</button>
