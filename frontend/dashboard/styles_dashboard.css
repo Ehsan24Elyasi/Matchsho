@@ -142,8 +142,11 @@ input[type="radio"]:checked + label {
     border-radius: 50px;
     background-color: var(--card-bg-light);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
 }
-
+#home, #roommates, #profile, #quiz, #roommate-profile {
+    padding-bottom: 100px; 
+}
 .bottom-nav button {
     transition: color 0.3s, background-color 0.3s;
 }
@@ -334,6 +337,7 @@ button:focus {
         border-radius: 0;
         bottom: 0;
         padding: 8px 0;
+        z-index: 1000;
     }
 
     .roommate-card {
@@ -355,9 +359,47 @@ button:focus {
 @media (min-width: 641px) and (max-width: 1024px) {
     .bottom-nav {
         width: 80%;
+        z-index: 1000;
     }
 
     .roommate-card {
         width: 180px;
     }
+}
+
+
+
+.error-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ef4444; /* رنگ قرمز برای خطا */
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    z-index: 2000; /* بالاتر از سایر المان‌ها */
+    text-align: center;
+    max-width: 90%;
+    font-size: 1rem;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.error-message::before {
+    content: "⚠️";
+    font-size: 18px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateY(-5px); }
 }

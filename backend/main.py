@@ -148,35 +148,48 @@ def get_answers(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="پاسخی برای کاربر یافت نشد")
     return answers
 
-@app.post("/answers/", response_model=List[Answer])
-def save_answers(answers: List[AnswerBase], db: Session = Depends(get_db)):
-    logger.info(f"Saving answers for user {answers[0].user_id}")
-    db_answers = []
-    valid_room_sizes = [2, 4, 8, 12]
+@app.put("/answers/{user_id}", response_model=List[Answer])
+def update_answers(user_id: int, answers: List[AnswerBase], db: Session = Depends(get_db)):
+    logger.info(f"Updating answers for user {user_id}")
+    user = db.query(UserModel).filter(UserModel.id == user_id).first()
+    if not user:
+        logger.error(f"User {user_id} not found")
+        raise HTTPException(status_code=404, detail="کاربر یافت نشد")
+    
+    # بررسی ظرفیت اتاق هنگام به‌روزرسانی سوال مربوط به ظرفیت
+    current_room = db.query(RoomModel).filter(RoomModel.owner_id == user_id).first()
+    current_roommate_count = len(current_room.roommates) if current_room else 0
+    
     for answer in answers:
-        if answer.question_id in [1, 2, 3, 4, 5, 6] and answer.value not in range(1, 6):
-            logger.error(f"Invalid value {answer.value} for question {answer.question_id}")
-            raise HTTPException(status_code=400, detail=f"مقدار پاسخ برای سؤال {answer.question_id} باید بین 1 و 5 باشد")
-        if answer.question_id == 7 and answer.value not in valid_room_sizes:
-            logger.error(f"Invalid room size {answer.value} for question 7")
-            raise HTTPException(status_code=400, detail=f"مقدار پاسخ برای اندازه اتاق باید یکی از {valid_room_sizes} باشد")
-        db_answer = AnswerModel(**answer.dict())
+        if answer.question_id == 7:  # سوال مربوط به ظرفیت اتاق
+            new_capacity = answer.value
+            if current_roommate_count > new_capacity:
+                logger.error(f"Roommate count {current_roommate_count} exceeds new capacity {new_capacity}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"نمی‌توانید ظرفیت را کمتر از تعداد فعلی هم‌اتاقی‌ها ({current_roommate_count}) تنظیم کنید"
+                )
+    
+    # حذف پاسخ‌های قبلی کاربر
+    db.query(AnswerModel).filter(AnswerModel.user_id == user_id).delete()
+    
+    # ذخیره پاسخ‌های جدید
+    new_answers = [];
+    for answer in answers:
+        db_answer = AnswerModel(
+            user_id=user_id,
+            question_id=answer.question_id,
+            value=answer.value
+        )
         db.add(db_answer)
-        db_answers.append(db_answer)
+        new_answers.append(db_answer)
+    
     db.commit()
-    for db_answer in db_answers:
-        db.refresh(db_answer)
-    # Update room capacity based on room_size answer
-    room_size_answer = next((a for a in answers if a.question_id == 7), None)
-    if room_size_answer:
-        user = db.query(UserModel).filter(UserModel.id == room_size_answer.user_id).first()
-        room = db.query(RoomModel).filter(RoomModel.owner_id == user.id).first()
-        if room:
-            room.capacity = room_size_answer.value
-            db.commit()
-            logger.info(f"Updated room capacity to {room.capacity} for user {user.id}")
-    return db_answers
-
+    for answer in new_answers:
+        db.refresh(answer)
+    
+    logger.info(f"Answers updated for user {user_id}")
+    return new_answers
 @app.get("/questions/", response_model=List[Question])
 def get_questions(db: Session = Depends(get_db)):
     logger.info("Fetching all questions")
@@ -295,43 +308,67 @@ def get_matches(user_id: int, db: Session = Depends(get_db)):
     rejected_users = db.query(RejectedRoommateModel).filter(RejectedRoommateModel.rejected_by_user_id == user_id).all()
     rejected_user_ids = {r.user_id for r in rejected_users}
     logger.info(f"Found {len(rejected_user_ids)} rejected users for user {user_id}")
+    
+    current_room = db.query(RoomModel).filter(RoomModel.owner_id == user_id).first()
+    current_roommate_ids = {roommate.user_id for roommate in current_room.roommates} if current_room else set()
+    logger.info(f"Found {len(current_roommate_ids)} roommates in user's room {user_id}")
+    
     potential_users = db.query(UserModel).filter(UserModel.id != user_id, UserModel.gender == user.gender).all()
     logger.info(f"Found {len(potential_users)} potential users for user {user_id}")
     
     for potential_user in potential_users:
-        if potential_user.id in rejected_user_ids:
-            logger.debug(f"Skipping rejected user {potential_user.id}")
+        if potential_user.id in rejected_user_ids or potential_user.id in current_roommate_ids:
+            logger.debug(f"Skipping rejected or current roommate user {potential_user.id}")
+            continue
+        # چک کردن تعداد roommateها در اتاق کاربر بالقوه
+        if potential_user.roommates and len(potential_user.roommates[0].room.roommates) > 1:
+            logger.debug(f"Skipping user {potential_user.id} with more than one roommate")
             continue
         potential_answers = db.query(AnswerModel).filter(AnswerModel.user_id == potential_user.id).all()
         if len(potential_answers) == 7:
             match_percentage = calculate_match_percentage(user_answers, potential_answers)
-            if match_percentage > 50:
-                user_data = {
-                    "id": potential_user.id,
-                    "email": potential_user.email,
-                    "name": potential_user.name,
-                    "class_name": potential_user.class_name,
-                    "student_id": potential_user.student_id,
-                    "gender": potential_user.gender,
-                    "password": None
-                }
-                matches.append(MatchResponse(user=User(**user_data), match_percentage=match_percentage))
-                logger.debug(f"Match found for user {potential_user.id} with percentage {match_percentage}%")
+            user_data = {
+                "id": potential_user.id,
+                "email": potential_user.email,
+                "name": potential_user.name,
+                "class_name": potential_user.class_name,
+                "student_id": potential_user.student_id,
+                "gender": potential_user.gender,
+                "password": None
+            }
+            matches.append(MatchResponse(user=User(**user_data), match_percentage=match_percentage))
+            logger.debug(f"Match found for user {potential_user.id} with percentage {match_percentage}%")
     
+    # مرتب‌سازی matches بر اساس درصد تطابق
     matches.sort(key=lambda x: x.match_percentage, reverse=True)
-    logger.info(f"Returning {len(matches)} matches for user {user_id}")
-    return matches[:4]
+    
+    # انتخاب 6 مورد: ابتدا بالای 50%، سپس پر کردن با زیر 50% در صورت نیاز
+    above_50 = [match for match in matches if match.match_percentage > 50]
+    below_50 = [match for match in matches if match.match_percentage <= 50]
+    result = above_50[:6]  # گرفتن حداکثر 6 مورد بالای 50%
+    if len(result) < 6:
+        result.extend(below_50[:6 - len(result)])  # پر کردن با موارد زیر 50% در صورت نیاز
+    logger.info(f"Returning {len(result)} matches for user {user_id}")
+    return result
 
 @app.get("/match_percentage/{user1_id}/{user2_id}", response_model=float)
 def get_match_percentage(user1_id: int, user2_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Calculating match percentage between users {user1_id} and {user2_id}")
+    logger.info(f"Fetching match percentage between user {user1_id} and user {user2_id}")
+    user1 = db.query(UserModel).filter(UserModel.id == user1_id).first()
+    user2 = db.query(UserModel).filter(UserModel.id == user2_id).first()
+    if not user1 or not user2:
+        logger.error(f"One or both users not found: user1_id={user1_id}, user2_id={user2_id}")
+        raise HTTPException(status_code=404, detail="یکی از کاربران یافت نشد")
+    
     user1_answers = db.query(AnswerModel).filter(AnswerModel.user_id == user1_id).all()
     user2_answers = db.query(AnswerModel).filter(AnswerModel.user_id == user2_id).all()
     if len(user1_answers) < 7 or len(user2_answers) < 7:
-        logger.error(f"Insufficient answers: user1 has {len(user1_answers)}, user2 has {len(user2_answers)}")
-        raise HTTPException(status_code=400, detail="پاسخ‌های کافی برای محاسبه تطابق وجود ندارد")
-    return calculate_match_percentage(user1_answers, user2_answers)
-
+        logger.error(f"Incomplete quiz answers: user1_answers={len(user1_answers)}, user2_answers={len(user2_answers)}")
+        raise HTTPException(status_code=400, detail="یکی از کاربران تست را کامل نکرده است")
+    
+    match_percentage = calculate_match_percentage(user1_answers, user2_answers)
+    logger.debug(f"Match percentage between user {user1_id} and user {user2_id}: {match_percentage}%")
+    return match_percentage
 def calculate_match_percentage(user_answers: List[AnswerModel], potential_answers: List[AnswerModel]):
     criteria = [1, 2, 3, 4, 5, 6]  # Question IDs for hygiene, socializing, smoking, noise, beliefs, sleep
     max_diff = 4  # Maximum difference (5 - 1)

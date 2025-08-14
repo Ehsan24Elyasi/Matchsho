@@ -132,15 +132,36 @@ const debounce = (func, wait) => {
     };
 };
 
-const showError = (errorKey, sectionId = 'signup') => {
-    const errorDiv = document.getElementById(sectionId + '-error');
-    if (errorDiv) {
-        errorDiv.textContent = translations[currentLang].errors[errorKey] || translations[currentLang].errors.server_error;
-        errorDiv.classList.remove('hidden');
-        setTimeout(() => errorDiv.classList.add('hidden'), 3000);
-        announceChange(errorDiv.textContent);
+const showError = (error, section) => {
+    let errorMessage;
+    
+    if (error && error.detail) {
+        errorMessage = error.detail; // استفاده مستقیم از پیام سرور
+    } else {
+        const errorMessages = translations[currentLang].errors;
+        errorMessage = errorMessages[error] || errorMessages.server_error;
+    }
+    
+    let errorContainer = document.getElementById('error-container');
+    if (!errorContainer) {
+        errorContainer = document.createElement('div');
+        errorContainer.id = 'error-container';
+        errorContainer.className = 'error-message';
+        document.body.prepend(errorContainer);
+    }
+    
+    errorContainer.textContent = errorMessage;
+    errorContainer.style.display = 'block';
+    
+    setTimeout(() => {
+        errorContainer.style.display = 'none';
+    }, 2000);
+    
+    if (section) {
+        navigateTo(section);
     }
 };
+
 
 const announceChange = (message) => {
     const liveRegion = document.createElement('div');
@@ -175,11 +196,9 @@ const updateLanguage = () => {
 };
 
 const navigateTo = (sectionId) => {
-    console.log(`Navigating to ${sectionId}, currentUser:`, currentUser, `isNewUser: ${isNewUser}, admin_token:`, localStorage.getItem('admin_token'));
     const isAdminPage = window.location.pathname.includes('admin.html');
 
     if (isAdminPage && ['login', 'signup', 'quiz', 'home', 'roommates', 'profile', 'roommate-profile'].includes(sectionId)) {
-        console.log(`Redirecting to dashboard.html#${sectionId} since section is not in admin.html`);
         window.location.href = `./dashboard.html#${sectionId}`;
         return;
     }
@@ -300,7 +319,6 @@ const handleAdminLogin = async () => {
 
     try {
         showLoading();
-        console.log('Attempting admin login with:', { email });
         const response = await fetch(`${API_BASE_URL}/admin/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -312,7 +330,6 @@ const handleAdminLogin = async () => {
         }
         const data = await response.json();
         localStorage.setItem('admin_token', data.token);
-        console.log('Admin login successful, token:', data.token);
         navigateTo('admin-rooms');
     } catch (error) {
         console.error('Admin login error:', error.message);
@@ -330,7 +347,6 @@ const handleAdminLogout = () => {
 
 const loadAdminRooms = async () => {
     const token = localStorage.getItem('admin_token');
-    console.log('Admin token:', token);
     if (!token) {
         showError('unauthorized', 'admin-rooms');
         setTimeout(() => navigateTo('admin-login'), 3000);
@@ -346,7 +362,6 @@ const loadAdminRooms = async () => {
                 'Authorization': `Bearer ${token}`
             }
         });
-        console.log('Admin rooms response status:', response.status);
         if (!response.ok) {
             if (response.status === 403) {
                 showError('unauthorized', 'admin-rooms');
@@ -356,7 +371,6 @@ const loadAdminRooms = async () => {
             throw new Error('Failed to fetch rooms');
         }
         const rooms = await response.json();
-        console.log('Admin rooms data:', rooms);
         const tableBody = document.getElementById('rooms-table-body');
         tableBody.innerHTML = '';
         if (rooms.length === 0) {
@@ -377,7 +391,6 @@ const loadAdminRooms = async () => {
         }
         announceChange(translations[currentLang].rooms_title);
     } catch (error) {
-        console.error('Error loading admin rooms:', error.message);
         showError('server_error', 'admin-rooms');
     } finally {
         hideLoading();
@@ -392,7 +405,6 @@ const handleLogout = () => {
     isNewUser = false;
     const isAdminPage = window.location.pathname.includes('admin.html');
     if (isAdminPage) {
-        console.log('Logging out from admin.html, redirecting to dashboard.html#login');
         window.location.href = './dashboard.html#login';
     } else {
         navigateTo('login');
@@ -406,7 +418,6 @@ const handleLogin = async () => {
 
     try {
         showLoading();
-        console.log('Attempting login with:', { email });
         const response = await fetch(`${API_BASE_URL}/login/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -417,7 +428,6 @@ const handleLogin = async () => {
             throw new Error(errorData.detail || 'Login failed');
         }
         currentUser = await response.json();
-        console.log('Login successful:', currentUser);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         localStorage.setItem('isNewUser', 'false');
         isNewUser = false;
@@ -426,7 +436,6 @@ const handleLogin = async () => {
         debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
-        console.error('Login error:', error.message);
         showError('invalid_login', 'login');
     } finally {
         hideLoading();
@@ -455,7 +464,6 @@ const saveUserInfo = async () => {
 
     try {
         showLoading();
-        console.log('Attempting to register user:', { email, name, className, studentId, gender });
         const response = await fetch(`${API_BASE_URL}/users/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -473,13 +481,11 @@ const saveUserInfo = async () => {
             throw new Error(errorData.detail || 'Signup failed');
         }
         currentUser = await response.json();
-        console.log('User registered successfully:', currentUser);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         localStorage.setItem('isNewUser', 'true');
         isNewUser = true;
         navigateTo('quiz');
     } catch (error) {
-        console.error('Signup error:', error.message);
         showError(error.message.includes('ایمیل') ? 'email_exists' : 'missing_fields', 'signup');
     } finally {
         hideLoading();
@@ -487,7 +493,6 @@ const saveUserInfo = async () => {
 };
 
 const loadQuizQuestions = async () => {
-    console.log('Loading quiz questions...');
     const cachedQuestions = localStorage.getItem('questions');
     if (cachedQuestions) {
         const questions = JSON.parse(cachedQuestions);
@@ -505,7 +510,6 @@ const loadQuizQuestions = async () => {
         localStorage.setItem('questions', JSON.stringify(questions));
         renderQuestions(questions);
     } catch (error) {
-        console.error('Quiz questions error:', error.message);
         showError('quiz_incomplete', 'quiz');
     } finally {
         hideLoading();
@@ -513,10 +517,8 @@ const loadQuizQuestions = async () => {
 };
 
 const renderQuestions = (questions) => {
-    console.log('Rendering quiz questions:', questions);
     const quizDiv = document.getElementById('quiz-questions');
     if (!quizDiv) {
-        console.error('Quiz questions div not found');
         return;
     }
     quizDiv.innerHTML = '';
@@ -559,15 +561,14 @@ const saveQuizResults = async () => {
 
     try {
         showLoading();
-        console.log('Saving quiz answers:', answers);
-        const response = await fetch(`${API_BASE_URL}/answers/`, {
-            method: 'POST',
+        const response = await fetch(`${API_BASE_URL}/answers/${currentUser.id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(answers)
         });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || 'Failed to save answers');
+            throw errorData;
         }
         localStorage.setItem('isNewUser', 'false');
         isNewUser = false;
@@ -576,8 +577,7 @@ const saveQuizResults = async () => {
         debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
     } catch (error) {
-        console.error('Save quiz error:', error.message);
-        showError('quiz_incomplete', 'quiz');
+        showError(error, 'quiz');
     } finally {
         hideLoading();
     }
@@ -621,7 +621,6 @@ const updateProfilePage = async () => {
 
         announceChange(translations[currentLang].profile_updated);
     } catch (error) {
-        console.error('Profile update error:', error.message);
         showError('user_not_found', 'profile');
     } finally {
         hideLoading();
@@ -630,17 +629,14 @@ const updateProfilePage = async () => {
 
 const updateRoomCapacity = async () => {
     if (isUpdatingRoomCapacity) {
-        console.log('updateRoomCapacity already in progress, skipping');
         return;
     }
     isUpdatingRoomCapacity = true;
     try {
         if (!currentUser) {
-            console.error('No currentUser found');
             return;
         }
         showLoading();
-        console.log(`Fetching room data for user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -650,7 +646,6 @@ const updateRoomCapacity = async () => {
             throw new Error(errorData.detail || 'Room not found');
         }
         const room = await response.json();
-        console.log('Room data:', JSON.stringify(room, null, 2));
 
         const capacityBar = document.getElementById('capacity-bar');
         const capacityText = document.getElementById('capacity-text');
@@ -667,7 +662,6 @@ const updateRoomCapacity = async () => {
         }
 
         const roommates = room.roommates || [];
-        console.log('Roommates:', JSON.stringify(roommates, null, 2));
         const capacity = room.capacity || 1;
         const percentage = (roommates.length / capacity) * 100;
 
@@ -677,12 +671,9 @@ const updateRoomCapacity = async () => {
         currentRoommatesDiv.innerHTML = '';
         if (roommates.length === 0) {
             currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ هم‌اتاقی فعلی وجود ندارد.</p>';
-            console.log('No roommates found');
         } else {
             const matchPromises = roommates.map(async (roommate) => {
-                console.log('Processing roommate:', JSON.stringify(roommate, null, 2));
                 if (!roommate.user || !roommate.user.id) {
-                    console.warn(`Roommate ${roommate.id} has invalid or missing user data:`, roommate.user);
                     return null;
                 }
                 let matchPercentage = null;
@@ -704,11 +695,9 @@ const updateRoomCapacity = async () => {
             });
 
             const roommateData = (await Promise.all(matchPromises)).filter(data => data !== null);
-            console.log('Filtered roommate data:', JSON.stringify(roommateData, null, 2));
 
             if (roommateData.length === 0) {
                 currentRoommatesDiv.innerHTML = '<p class="text-center text-gray-600 font-fa">هیچ هم‌اتاقی فعلی وجود ندارد.</p>';
-                console.log('No valid roommate data after filtering');
             } else {
                 const uniqueRoommateData = Array.from(new Set(roommateData.map(data => data.roommateId)))
                     .map(id => roommateData.find(data => data.roommateId === id));
@@ -718,16 +707,9 @@ const updateRoomCapacity = async () => {
                     card.className = 'roommate-card';
                     card.innerHTML = `
                         <div class="profile-container">
-                            ${data.matchPercentage !== 'N/A' ? `
-                            <svg class="progress-circle" viewBox="0 0 100 100" aria-label="درصد تطابق">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="10" stroke-dasharray="${data.matchPercentage * 2.51}, 251.2"/>
-                            </svg>
-                            ` : ''}
-                            <img src="${data.user.gender === 'male' ? '../src/avatar-male.png' : '../src/avatar-female-3d.png'}" class="profile-icon" alt="آیکون پروفایل" style="width: 75px; height: 75px;">
-                            <span class="match-percentage">${data.matchPercentage !== 'N/A' ? data.matchPercentage + '%' : 'N/A'}</span>
+                            <img src="${data.user.gender === 'male' ? '../src/avatar-male.png' : '../src/avatar-female-3d.png'}" class="profile-icon" alt="آیکون پروفایل" style="width: 115px; height: 115px;">
                         </div>
-                        <h3 class="text-sm font-semibold text-gray-800 font-fa mt-4">${sanitizeInput(data.user.name)}</h3>
+                        <h3 class="text-sm font-semibold text-gray-800 font-fa">${sanitizeInput(data.user.name)}</h3>
                         <p class="text-xs text-gray-600 font-fa">${sanitizeInput(data.user.class_name)}</p>
                         <button onclick="removeRoommate(${data.roommateId})" class="remove-roommate-btn mt-2 font-fa">حذف</button>
                     `;
@@ -738,7 +720,6 @@ const updateRoomCapacity = async () => {
 
         announceChange(translations[currentLang].room_capacity_updated || 'Room capacity updated');
     } catch (error) {
-        console.error('Room capacity error:', error.message);
         showError('user_not_found', 'home');
         const currentRoommatesDiv = document.getElementById('current-roommates');
         if (currentRoommatesDiv) {
@@ -754,13 +735,11 @@ const debouncedUpdateRoomCapacity = debounce(updateRoomCapacity, 300);
 
 const displaySuggestedRoommates = async () => {
     if (!currentUser || !currentUser.id) {
-        console.error('No valid currentUser found');
         showError('user_not_found', 'roommates');
         return;
     }
     showLoading();
     try {
-        console.log(`Fetching matches for user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/matches/${currentUser.id}`);
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -769,14 +748,15 @@ const displaySuggestedRoommates = async () => {
         const matches = await response.json();
         const suggestedRoommatesDiv = document.getElementById('suggested-roommates');
         if (!suggestedRoommatesDiv) {
-            console.error('Element with ID "suggested-roommates" not found');
             showError('server_error', 'roommates');
             return;
         }
         suggestedRoommatesDiv.innerHTML = '';
 
         if (matches.length === 0) {
-            suggestedRoommatesDiv.innerHTML = `<p class="text-center text-gray-600 font-fa">${translations[currentLang].no_matches}</p>`;
+            suggestedRoommatesDiv.innerHTML = `
+            <p class="text-center text-gray-600 font-fa">${translations[currentLang].no_matches}</p>
+            `;
             announceChange(translations[currentLang].no_matches);
             return;
         }
@@ -803,7 +783,6 @@ const displaySuggestedRoommates = async () => {
 
         announceChange(translations[currentLang].roommates_updated);
     } catch (error) {
-        console.error('Suggested roommates error:', error.message);
         showError('no_matches', 'roommates');
     } finally {
         hideLoading();
@@ -867,13 +846,11 @@ const viewRoommateProfile = async (roommateId) => {
 
 const acceptRoommate = async () => {
     if (!currentUser || !currentRoommateId) {
-        console.error('Missing currentUser or currentRoommateId', { currentUser, currentRoommateId });
         showError('user_not_found', 'roommate-profile');
         return;
     }
     showLoading();
     try {
-        console.log(`Accepting roommate ${currentRoommateId} for user ${currentUser.id}`);
         const roomResponse = await fetch(`${API_BASE_URL}/rooms/${currentUser.id}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -883,7 +860,6 @@ const acceptRoommate = async () => {
             throw new Error(errorData.detail || 'Room not found');
         }
         const room = await roomResponse.json();
-        console.log('Room for adding roommate:', room);
         const response = await fetch(`${API_BASE_URL}/roommates/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -894,13 +870,11 @@ const acceptRoommate = async () => {
             throw new Error(errorData.detail || 'Failed to add roommate');
         }
         const newRoommate = await response.json();
-        console.log('New roommate added:', newRoommate);
         navigateTo('home');
         debouncedUpdateRoomCapacity();
         displaySuggestedRoommates();
         announceChange(translations[currentLang].roommate_added);
     } catch (error) {
-        console.error('Accept roommate error:', error.message);
         showError(error.message.includes('ظرفیت') ? 'room_full' : error.message.includes('تمایلی') ? 'user_in_room' : 'server_error', 'roommate-profile');
     } finally {
         hideLoading();
@@ -909,13 +883,11 @@ const acceptRoommate = async () => {
 
 const rejectRoommate = async () => {
     if (!currentUser || !currentRoommateId) {
-        console.error('Missing currentUser or currentRoommateId');
         showError('user_not_found', 'roommate-profile');
         return;
     }
     showLoading();
     try {
-        console.log(`Rejecting roommate ${currentRoommateId} by user ${currentUser.id}`);
         const response = await fetch(`${API_BASE_URL}/reject_roommate/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -929,7 +901,6 @@ const rejectRoommate = async () => {
         displaySuggestedRoommates();
         announceChange(translations[currentLang].roommate_rejected);
     } catch (error) {
-        console.error('Reject roommate error:', error.message);
         showError('server_error', 'roommate-profile');
     } finally {
         hideLoading();
@@ -939,7 +910,6 @@ const rejectRoommate = async () => {
 const removeRoommate = async (roommateId) => {
     try {
         showLoading();
-        console.log(`Removing roommate ${roommateId}`);
         const response = await fetch(`${API_BASE_URL}/roommates/${roommateId}`, {
             method: 'DELETE'
         });
@@ -958,8 +928,6 @@ const removeRoommate = async (roommateId) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded triggered');
-    console.log('Current state:', { currentUser, isNewUser, admin_token: localStorage.getItem('admin_token'), hash: window.location.hash });
 
     if (localStorage.getItem('theme') === 'dark') {
         document.body.classList.add('dark-mode');
@@ -993,38 +961,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('admin_token');
 
     if (validSections.includes(hash)) {
-        console.log(`Navigating to ${hash} based on URL hash`);
         if (isAdminPage && hash === 'admin-rooms' && !token) {
-            console.log('No admin token, redirecting to admin-login');
             navigateTo('admin-login');
         } else if (!isAdminPage && ['home', 'roommates', 'profile', 'roommate-profile'].includes(hash) && !currentUser) {
-            console.log('No current user, redirecting to login');
             navigateTo('login');
         } else if (!isAdminPage && hash === 'quiz' && !isNewUser && !currentUser) {
-            console.log('Not a new user and no current user, redirecting to login');
             navigateTo('login');
         } else {
             navigateTo(hash);
         }
     } else {
-        console.log('No valid hash, checking user and admin status');
         if (isAdminPage) {
             if (token) {
-                console.log('Admin token found, navigating to admin-rooms');
                 navigateTo('admin-rooms');
             } else {
-                console.log('No admin token, navigating to admin-login');
                 navigateTo('admin-login');
             }
         } else {
             if (!currentUser) {
-                console.log('No currentUser, navigating to login');
                 navigateTo('login');
             } else if (isNewUser) {
-                console.log('New user, navigating to quiz');
                 navigateTo('quiz');
             } else {
-                console.log('Existing user, navigating to home');
                 navigateTo('home');
             }
         }
@@ -1043,23 +1001,17 @@ window.addEventListener('hashchange', () => {
         : ['login', 'signup', 'quiz', 'home', 'roommates', 'profile', 'roommate-profile'];
     const token = localStorage.getItem('admin_token');
 
-    console.log('Hash changed to:', hash);
     if (validSections.includes(hash)) {
-        console.log(`Navigating to ${hash}`);
         if (isAdminPage && hash === 'admin-rooms' && !token) {
-            console.log('No admin token, redirecting to admin-login');
             navigateTo('admin-login');
         } else if (!isAdminPage && ['home', 'roommates', 'profile', 'roommate-profile'].includes(hash) && !currentUser) {
-            console.log('No current user, redirecting to login');
             navigateTo('login');
         } else if (!isAdminPage && hash === 'quiz' && !isNewUser && !currentUser) {
-            console.log('Not a new user and no current user, redirecting to login');
             navigateTo('login');
         } else {
             navigateTo(hash);
         }
     } else {
-        console.log('Invalid hash, navigating to default');
         navigateTo(isAdminPage ? 'admin-login' : 'login');
     }
 });
