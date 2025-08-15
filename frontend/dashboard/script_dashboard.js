@@ -559,28 +559,37 @@ const saveQuizResults = async () => {
         });
     }
 
-    try {
-        showLoading();
-        const response = await fetch(`${API_BASE_URL}/answers/${currentUser.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(answers)
-        });
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw errorData;
-        }
-        localStorage.setItem('isNewUser', 'false');
-        isNewUser = false;
-        navigateTo('home');
-        updateProfilePage();
-        debouncedUpdateRoomCapacity();
-        displaySuggestedRoommates();
-    } catch (error) {
-        showError(error, 'quiz');
-    } finally {
-        hideLoading();
+try {
+    showLoading();
+    console.log('Saving quiz answers:', answers);
+    const response = await fetch(`${API_BASE_URL}/answers/${currentUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(answers)
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw errorData;
     }
+    const updatedAnswers = await response.json(); // دریافت پاسخ‌ها از سرور
+    // به‌روزرسانی نمایش ظرفیت اتاق
+    const roomCapacity = updatedAnswers.find(a => a.question_id === 7)?.value || 1;
+    const capacityElement = document.getElementById('room-capacity');
+    if (capacityElement) {
+        capacityElement.textContent = roomCapacity;
+    }
+    localStorage.setItem('isNewUser', 'false');
+    isNewUser = false;
+    navigateTo('home');
+    updateProfilePage();
+    debouncedUpdateRoomCapacity();
+    displaySuggestedRoommates();
+} catch (error) {
+    console.error('Save quiz error:', error);
+    showError(error, 'quiz');
+} finally {
+    hideLoading();
+}
 };
 
 const updateProfilePage = async () => {

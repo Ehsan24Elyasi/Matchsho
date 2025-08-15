@@ -156,12 +156,12 @@ def update_answers(user_id: int, answers: List[AnswerBase], db: Session = Depend
         logger.error(f"User {user_id} not found")
         raise HTTPException(status_code=404, detail="کاربر یافت نشد")
     
-    # بررسی ظرفیت اتاق هنگام به‌روزرسانی سوال مربوط به ظرفیت
+    # بررسی و به‌روزرسانی ظرفیت اتاق
     current_room = db.query(RoomModel).filter(RoomModel.owner_id == user_id).first()
     current_roommate_count = len(current_room.roommates) if current_room else 0
     
     for answer in answers:
-        if answer.question_id == 7:  # سوال مربوط به ظرفیت اتاق
+        if answer.question_id == 7:  # ظرفیت اتاق
             new_capacity = answer.value
             if current_roommate_count > new_capacity:
                 logger.error(f"Roommate count {current_roommate_count} exceeds new capacity {new_capacity}")
@@ -169,12 +169,14 @@ def update_answers(user_id: int, answers: List[AnswerBase], db: Session = Depend
                     status_code=400,
                     detail=f"نمی‌توانید ظرفیت را کمتر از تعداد فعلی هم‌اتاقی‌ها ({current_roommate_count}) تنظیم کنید"
                 )
+            # به‌روزرسانی ظرفیت اتاق در دیتابیس
+            if current_room:
+                current_room.capacity = new_capacity
+                db.commit()
     
-    # حذف پاسخ‌های قبلی کاربر
+    # حذف پاسخ‌های قبلی و ذخیره پاسخ‌های جدید
     db.query(AnswerModel).filter(AnswerModel.user_id == user_id).delete()
-    
-    # ذخیره پاسخ‌های جدید
-    new_answers = [];
+    new_answers = []
     for answer in answers:
         db_answer = AnswerModel(
             user_id=user_id,
@@ -190,6 +192,7 @@ def update_answers(user_id: int, answers: List[AnswerBase], db: Session = Depend
     
     logger.info(f"Answers updated for user {user_id}")
     return new_answers
+
 @app.get("/questions/", response_model=List[Question])
 def get_questions(db: Session = Depends(get_db)):
     logger.info("Fetching all questions")
