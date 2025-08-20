@@ -210,6 +210,19 @@ Here are some planned features and improvements for future versions of Matchsho:
 
 ---
 
+## 🔒 MatchSho HTTPS Security Overview (A+ Rating)
+
+Check out our website's **security status**! 👀  
+We are using **TLS 1.3** 🚀 and have **HSTS** enabled for maximum protection. 🛡️  
+
+![MatchSho HTTPS Status](./frontend/src/https-summary.png)
+
+✅ **Overall Rating:** A+  
+✅ **Protocol Support:** TLS 1.3  
+✅ **Key Exchange & Cipher Strength:** Secure & Modern  
+
+---
+
 ## 📞 Contact
 
 If you have any questions, suggestions, or want to contribute, feel free to reach out:
