@@ -1,0 +1,88 @@
+# Direct HTTPS edge; no development DB, mail sink, public API, or implicit .env.
+# docker compose --env-file /secure/matchsho.env -f compose.production.yaml ...
+x-app: &app
+  image: ${BACKEND_IMAGE:?Use a scanned immutable backend image digest}
+  environment: &env
+    ENVIRONMENT: production
+    DATABASE_URL: ${DATABASE_URL:?Set verified PostgreSQL URL with sslmode=verify-full and sslrootcert=/run/db-ca/root.crt}
+    SECRET_KEY: ${SECRET_KEY:?Required}
+    OUTBOX_KEY: ${OUTBOX_KEY:?Required}
+    OUTBOX_KEY_VERSION: ${OUTBOX_KEY_VERSION:-1}
+    ARGON2_CONCURRENCY: "2"
+    AUTO_CREATE_DB: "false"
+    COOKIE_SECURE: "true"
+    COOKIE_SAMESITE: lax
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set HTTPS public origin}
+    ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Set public hostname plus 127.0.0.1}
+    CORS_ORIGINS: ""
+    TRUSTED_PROXY_IPS: 172.30.88.10
+    REQUIRE_EMAIL_VERIFICATION: "true"
+    SMTP_HOST: ${SMTP_HOST:?Required}
+    SMTP_PORT: ${SMTP_PORT:-587}
+    SMTP_STARTTLS: "true"
+    SMTP_SSL: "false"
+    SMTP_SECURITY: starttls
+    ACTIVE_CYCLE: ${ACTIVE_CYCLE:?Set approved allocation cycle}
+    ALLOWED_POOLS: ${ALLOWED_POOLS:?Set approved dormitory pools}
+    INSTITUTION_NAME: ${INSTITUTION_NAME:?Set approved institution name}
+    SUPPORT_CONTACT: ${SUPPORT_CONTACT:?Set real support contact}
+    SMTP_USERNAME: ${SMTP_USERNAME:?Required}
+    SMTP_PASSWORD: ${SMTP_PASSWORD:?Required}
+    SMTP_FROM: ${SMTP_FROM:?Required}
+    NO_OUTBOUND_EMAIL: "false"
+    RELEASE_ID: ${RELEASE_ID:?Required source revision}
+  volumes:
+    - ${DB_CA_DIRECTORY:?Directory containing root.crt}:/run/db-ca:ro
+  read_only: true
+  tmpfs: ["/tmp:size=32m,mode=1777"]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  networks: [pilot]
+  restart: unless-stopped
+  logging:
+    driver: local
+    options: {max-size: 10m, max-file: "5"}
+services:
+  migrate:
+    <<: *app
+    command: [python, -m, pilot.migrate]
+    restart: "no"
+    healthcheck: {disable: true}
+  matchsho-backend:
+    <<: *app
+    command: [uvicorn, main:app, --host, 0.0.0.0, --port, "8000", --proxy-headers, --forwarded-allow-ips=172.30.88.10, --no-access-log]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+  worker:
+    <<: *app
+    command: [python, -m, pilot.worker]
+    healthcheck: {disable: true}
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  frontend:
+    image: ${FRONTEND_IMAGE:?Use a scanned immutable frontend image digest}
+    depends_on:
+      matchsho-backend: {condition: service_healthy}
+    ports: ["443:8443"]
+    volumes:
+      - ./frontend/nginx.production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_DIRECTORY:?Directory containing fullchain.pem and privkey.pem}:/run/tls:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/cache/nginx:size=32m,uid=101,gid=101
+      - /var/run:size=1m,uid=101,gid=101
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    networks:
+      pilot: {ipv4_address: 172.30.88.10}
+networks:
+  pilot:
+    ipam:
+      config: [{subnet: 172.30.88.0/24}]

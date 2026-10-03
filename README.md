@@ -1,248 +1,78 @@
-# 🎯 Matchsho
+# Matchsho
 
-**Matchsho** is a web application designed to help university students find compatible roommates in dormitories. By collecting answers to a simple psychology-based test and personal living preferences, the system recommends the most compatible matches to enhance the shared dormitory experience and reduce potential conflicts.
+Matchsho (مچ‌شو) helps invited students find compatible roommates and lets a dormitory operator manage groups and room allocation. The pilot supports one institution, one active allocation cycle and a limited cohort. Completing local tests does not authorize admission of real students.
 
----
+## Current pilot
 
-## 🚀 Tech Stack
+- Roster-controlled email activation; the recipient chooses the password.
+- Argon2id, HttpOnly cookies, CSRF, database-backed revocable sessions and rotating refresh tokens.
+- Private versioned questionnaire, server drafts, bilateral preferences and explicit matching consent.
+- Purpose-aware profile access and two-way blocks; peer DTOs expose only allowed display fields.
+- Unanimous, revision-bound group admission and individual departures that preserve roommates' places.
+- Audited operator allocation, move, reconciliation, support and delivery queues.
+- Encrypted transactional email outbox and an independent delivery/retention worker.
+- Persian RTL interface, keyboard-accessible controls, fingerprinted assets and a same-origin `/api`.
 
-- **Frontend**: HTML, TailwindCSS, JavaScript  
-- **Backend**: Python, FastAPI  
-- **Database**: MySQL
+The authoritative API contract is [docs/pilot/api-contract.md](docs/pilot/api-contract.md). Deployment and release requirements are in [docs/pilot/operations.md](docs/pilot/operations.md). Local test reports, screenshots and release records are generated artifacts excluded from Git; see [artifacts/pilot/README.md](artifacts/pilot/README.md).
 
----
+## Architecture
 
-## ✨ Features
-
-- 🧠 **Smart Matchmaking** – Pairs students based on personality, lifestyle, and roommate preferences.
-- 📝 **Custom Test System** – Includes a personalized questionnaire system to evaluate compatibility.
-- 📊 **Clear Result Display** – Shows roommate compatibility scores and match reasoning.
-- ⚙️ **Modern Tech Stack** – Built with FastAPI, vanilla JavaScript, TailwindCSS, and MySQL.
-- 🌐 **Web-based UI** – Simple and responsive interface accessible from any device.
-- 🔐 **Privacy Focused** – All data is stored securely and only accessible by admins.
-
----
-
-## 💡📊 Try the Live Demo Now! 💡📊
-
-Experience **Matchsho** in action! Click the link below to explore the platform and see how it helps students find their perfect roommates.  
-
-# [🚀 **Go to Live Demo** 🚀](http://matchshoapp.ir)
-
-> 🌟 **Tip:** Fill out the short personality test and discover your most compatible dorm mates instantly!
-
----
-
-## 🚀 Deployment on Linux Server
-Follow these steps to deploy Matchsho on a Linux server (e.g., with SSH access).
-
-### 🔧 Prerequisites
-
-- SSH access to the server
-- Python 3.11+ installed on the server
-- MySQL Server on the host
-- Git installed on the server
-
-### 📥 Clone the Repository
-
-```bash
-git clone https://github.com/Ehsan24Elyasi/matchsho.git
-cd matchsho/backend
-```
-### 🛠️ Setup
-1. Create a virtual environment:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
+```text
+Browser -> Nginx -> /api -> FastAPI -> PostgreSQL 16
+                              |           |
+                              +-- outbox -+-> independent worker -> SMTP
 ```
 
-2. Install dependencies:
-```bash
-   pip install -r requirements.txt
+`backend/pilot/` separates identity, privacy, matching, invitations, housing and delivery. `frontend/js/` separates API/session/router/UI and features. Production ships only `frontend/dist/`, built from the original landing design, shared dashboard styles, local fonts and verified artwork.
+
+## Isolated local stack
+
+Use Docker Compose v2 and Python 3.11+. Choose unused loopback ports. Generate dedicated synthetic credentials instead of copying an existing backend environment or database:
+
+```sh
+python scripts/prepare_dev.py --output .env.pilot-local
+docker compose --env-file .env.pilot-local -p matchsho-pilot-local config --quiet
+docker compose --env-file .env.pilot-local -p matchsho-pilot-local up --build -d --wait --wait-timeout 180
+docker compose --env-file .env.pilot-local -p matchsho-pilot-local exec -T matchsho-backend python create_admin.py
 ```
 
-3. Create a MySQL database (e.g., matchsho_db) and a user (e.g., matchsho_user) with a secure password.
+The defaults are frontend `http://localhost:8080` and local Mailpit `http://localhost:8025`. The current review session uses frontend port **8088** because 8080 was occupied. The generated env file contains the local operator credential and must stay out of Git. API and database ports are private. Emails reach the test sink through the same outbox worker used in deployment; authentication links are not written to application logs.
 
-4. Configure .env in the backend directory:
-```bash
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=matchsho_user
-MYSQL_PASSWORD=your_secure_password
-MYSQL_DATABASE=matchsho_db
-```
-5. Create database tables:
-```bash
-python3 -c "from database import Base, engine; Base.metadata.create_all(bind=engine)"
-```
+Compose runs the advisory-locked migration job before API/worker startup. Outside Compose, configure a disposable database and run `python -m pilot.migrate` from `backend/` explicitly before starting the API. `start.sh` starts only the API. Never run migrations automatically from each API replica. Preserve existing data and perform preflight/reconciliation before upgrading a real database.
 
-## ▶️ Run the Application
+## Frontend and tests
 
-1. Edit start.sh with the correct virtual environment path (e.g., /home/yourusername/venv/bin/activate):
-```bash
-#!/bin/bash
-source /home/yourusername/venv/bin/activate
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-2. Make it executable and run:
-```bash
-chmod +x start.sh
-./start.sh  
-```
-
-3. (Optional) For continuous running, set up supervisor:
-```bash
-sudo apt update
-sudo apt install supervisor
-sudo nano /etc/supervisor/conf.d/matchsho.conf
-```
-Content:
-
-```bash
-[program:matchsho]
-command=/home/yourusername/matchsho/backend/start.sh
-directory=/home/yourusername/matchsho/backend
-autostart=true
-autorestart=true
-```
-
-Save and reload:
-```bash
-sudo supervisorctl reload
-```
-
-
-## 🌐 Access the Site
-- Ensure port 8000 is open in the firewall (sudo ufw allow 8000).
-- Configure the domain (e.g., yourdomain.com) to point to the backend directory.
-- Open http://yourdomain.com:8000 in a browser.
-
----
-
-## ⚙️ Installation & Running Locally
-
-Follow these steps to run Matchsho on your local machine.
-
-### 🔧 Prerequisites
-
-- Python 3.10+
-- MySQL Server
-- Git
-- Any modern browser (for frontend)
-
-### 📥 Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/matchsho.git
-cd matchsho
-```
-
-### Backend Setup (FastAPI)
-
-1. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Configure `.env` with your MySQL credentials.
-
-4. Run the backend:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-### Frontend Setup
-
-- The frontend is a static site built with vanilla JavaScript.
-- You can open `index.html` directly in your browser or serve it locally:
-
-```bash
+```sh
 cd frontend
-python -m http.server 8080
+npm ci --ignore-scripts
+npm run build
+npm test
+npm run test:contrast
+npm run test:e2e
 ```
 
-Open your browser at `http://localhost:8080`.
+The production build uses shared CSS and browser ES modules; there is no Tailwind build step. The default API is same-origin `/api`. The optional test server supports an explicit `API_TARGET` development proxy; see [frontend/README.md](frontend/README.md).
 
----
+Backend dependencies are locked with hashes in `backend/requirements.lock` and `backend/requirements-dev.lock`. Install them in an isolated **Python 3.11** environment. Backend tests use disposable SQLite files and separate random PostgreSQL schemas; PostgreSQL concurrency evidence requires `TEST_DATABASE_URL` and `SECURITY_TEST_DATABASE_URL` pointing to a dedicated database whose name ends in `_test`. Never point tests at a real application database.
 
-## 🧗 Challenges Faced
+CI in `.github/workflows/ci.yml` runs Python3.11/PostgreSQL16 regression and migration tests, lint, dependency/secret/image scans and Playwright behind the built Nginx image with a disposable DB/mail sink. Local UI fixture tests complement the actual stack journey. Test evidence does not imply remote CI has run for the uncommitted checkout.
 
-During the development of Matchsho, these were some of the main challenges:
+## Real deployment
 
-### 1. 🧠 Designing the Matching Algorithm
-Creating a system that accurately matches students based on a set of subjective inputs (like cleanliness, bedtime, sociability) required trial and error. We iterated over various scoring strategies before settling on a weighted comparison model.
+Follow [docs/pilot/operations.md](docs/pilot/operations.md) and the Persian [operator guide](docs/pilot/operator-fa.md). Use `compose.production.yaml`, independently generated keys, immutable scanned registry images, HTTPS, Secure cookies, explicit trusted peers and PostgreSQL `sslmode=verify-full` with the issuing CA mounted. Production uses same-origin access; do not enable development CORS settings or publish the API directly. SMTP requires verified TLS.
 
-### 2. 🔗 Connecting Vanilla JS to an API  
-Since we didn’t use a frontend framework, working with async APIs and handling loading states manually in JavaScript added extra effort and complexity.
+Kubernetes is optional; render the templates with `scripts/render_k8s.py` using release-specific migration-job names and actual image/proxy/DNS values. Do not apply unrendered templates. No deployment has been authorized solely by this README.
 
-### 3. 🧵 CORS & Backend Connectivity  
-Integrating the frontend with FastAPI required proper CORS configuration and consistent API route design.
+Daily encrypted off-host backups, a measured isolated restore with a current independent erasure ledger, delivered alerts, real SMTP receipt and institutional roster/policy/support sign-off are required before launch. Start a local release record from `artifacts/pilot/release-record.example.json`, record actual evidence in `artifacts/pilot/release-record.json`, and run:
 
+```sh
+python scripts/release_gate.py artifacts/pilot/release-record.json
+```
 
-### 4. 🧪 Handling Test Results  
-Displaying and interpreting the personality/compatibility test results required several design iterations to make the results understandable and meaningful for students.
+The gate deliberately fails while required evidence or the designated operator's admission authorization is missing. Rollback to the old API without privacy/session guards is prohibited; destructive automatic downgrade is disabled. Read the runbook before rotating signing/HMAC or outbox keys.
 
-### 5. 🔒 Respecting User Privacy  
-Even though this is a student project, user data privacy was important. We avoided storing unnecessary raw answers and made sure data was only accessible by authorized users.
+## Privacy and license
 
+Peer responses exclude email, student ID and raw questionnaire answers. The owner and authorized operator have separate minimal views; matching explanations require consent and exclude sensitive categories. Retention and account closure behavior are described in [the privacy notice](frontend/privacy.html) and the operator guide. Confirm the institution's actual support contact and policy before admitting students.
 
----
-
-## 🛤️ Roadmap
-
-Here are some planned features and improvements for future versions of Matchsho:
-
-- [ ] Add real-time chat functionality between matched roommates.
-- [ ] Develop a mobile app version for easier access.
-- [ ] Improve the matching algorithm with machine learning techniques.
-- [ ] Add multi-language support to cater to international students.
-- [ ] Implement user authentication and profile management.
-- [ ] Enable admins to manage test questions and view analytics dashboards.
-- [ ] Enhance accessibility compliance and UI/UX refinements.
-
----
-
-## 🔒 MatchSho HTTPS Security Overview (A+ Rating)
-
-Check out our website's **security status**! 👀  
-We are using **TLS 1.3** 🚀 and have **HSTS** enabled for maximum protection. 🛡️  
-
-![MatchSho HTTPS Status](./frontend/src/https-summary.png)
-
-✅ **Overall Rating:** A+  
-✅ **Protocol Support:** TLS 1.3  
-✅ **Key Exchange & Cipher Strength:** Secure & Modern  
-
----
-
-## 📞 Contact
-
-If you have any questions, suggestions, or want to contribute, feel free to reach out:
-
-- **Email:** ehsane8224pc@gmail.com  
-- **LinkedIn:** [linkedin.com/in/ehsan-elyasi](https://linkedin.com/in/ehsan-elyasi)  
-- **GitHub:** [github.com/Ehsan24Elyasi](https://github.com/Ehsan24Elyasi)
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE%20.txt) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-Special thanks to all students and mentors who provided valuable feedback and support during the development of this project.  
-Also, thanks to the open-source community and the creators of FastAPI, TailwindCSS, and other tools used here.
-
----
-
+MIT. See [LICENSE .txt](LICENSE%20.txt).

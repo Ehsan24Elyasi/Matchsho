@@ -6,6 +6,10 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Virtual Environment
 venv/
@@ -15,10 +19,31 @@ env/
 # Environment Variables
 .env
 *.env
+.env.*
+!.env.example
+!.env.*.example
+.env.pilot-*
+.env.production
+artifacts/pilot/evidence/
+artifacts/pilot/private/
+artifacts/pilot/release-record.json
+docs/pilot/evidence/
+frontend/test-results/
+frontend/playwright-report/
+.claude/settings.local.json
 
 # Database
 *.db
 *.sqlite3
+*.db-*
+*.sqlite*
+*.dump
+*.pgdump
+
+# Frontend dependencies
+node_modules/
+npm-debug.log*
+frontend/src/fonts/IRANYekanX(Pro)/
 
 # IDE
 .vscode/
@@ -32,6 +57,8 @@ Thumbs.db
 
 # Logs
 *.log
+*.bak
+*.tmp
 
 # Frontend SEO (keep locally, don't push)
 frontend/google678d2ef33e6724a3.html

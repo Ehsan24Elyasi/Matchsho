@@ -1,11 +1,13 @@
 # فایل دیتابیس SQLite
 database.db
+database_v2.db
 
 # فایل متغیرهای محیطی
 .env
 
 # فایل‌های موقتی و کامپایل‌شده پایتون
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
@@ -27,9 +29,9 @@ env/
 build/
 dist/
 
-# فایل‌های تست یا داکیومنت موقت
+# فایل‌های تست موقت
 *.test
-*.md (اگه داکیومنت‌های موقت داری)
+!Dockerfile.test
 
 # استثناها (اگه چیزی خاص می‌خوای نادیده گرفته نشه)
 #!important_config.txt

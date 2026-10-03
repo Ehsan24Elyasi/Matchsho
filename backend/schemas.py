@@ -1,133 +1,208 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Dict, List, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserBase(BaseModel):
-    email: str
-    name: str
-    class_name: str
-    student_id: str
-    gender: str
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    name: str = Field(min_length=2, max_length=100)
+    class_name: str = Field(min_length=1, max_length=100)
+    student_id: str = Field(min_length=2, max_length=50)
+    gender: Literal["male", "female", "other"]
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+    @field_validator("name", "class_name", "student_id")
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("value cannot be empty")
+        return value
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=12, max_length=128)
+
+
+class PublicUser(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    class_name: str
+    gender: str
+
+
+class RoommateProfile(PublicUser):
+    """Profile fields that are safe to show while deciding on a request."""
+
+    student_id: Optional[str] = None
+    answers: Dict[str, int] = Field(default_factory=dict)
+    match_percentage: Optional[float] = Field(default=None, ge=0, le=100)
 
 
 class User(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    password: Optional[str] = None
+    role: str = "user"
+    is_active: bool = True
+    email_verified: bool = False
+    created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
-
-# --- Room ---
 
 class RoomCreate(BaseModel):
-    number: str
-    capacity: int
-    dormitory: str
+    model_config = ConfigDict(extra="forbid")
+
+    number: str = Field(min_length=1, max_length=20)
+    capacity: int = Field(ge=1, le=100)
+    dormitory: str = Field(min_length=1, max_length=100)
 
 
 class RoomUpdate(BaseModel):
-    number: Optional[str] = None
-    capacity: Optional[int] = None
-    dormitory: Optional[str] = None
-    current_occupancy: Optional[int] = None
+    model_config = ConfigDict(extra="forbid")
+
+    number: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    capacity: Optional[int] = Field(default=None, ge=1, le=100)
+    dormitory: Optional[str] = Field(default=None, min_length=1, max_length=100)
 
 
 class Room(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     number: str
     capacity: int
     dormitory: str
     current_occupancy: int
 
-    class Config:
-        from_attributes = True
-
-
-# --- Group ---
 
 class GroupMemberSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     group_id: int
-    user: User
+    user: PublicUser
 
-    class Config:
-        from_attributes = True
+
+class RoomAssignmentSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    room_id: int
+    room: Room
 
 
 class GroupSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
+    capacity: int
     is_complete: bool
-    members: List[GroupMemberSchema] = []
+    members: List[GroupMemberSchema] = Field(default_factory=list)
+    room_assignment: Optional[RoomAssignmentSchema] = None
 
-    class Config:
-        from_attributes = True
-
-
-# --- RoommateRequest ---
 
 class RoommateRequestCreate(BaseModel):
-    sender_id: int
-    receiver_id: int
+    model_config = ConfigDict(extra="forbid")
+
+    receiver_id: int = Field(gt=0)
+    # Kept temporarily for old clients; the server always derives sender_id
+    # from the authenticated session and rejects a mismatching value.
+    sender_id: Optional[int] = Field(default=None, gt=0)
 
 
 class RoommateRequestSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    sender: User
-    receiver: User
+    sender: PublicUser
+    receiver: PublicUser
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
 
+class Question(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-# --- Quiz ---
-
-class QuestionBase(BaseModel):
-    text: str
-
-
-class Question(QuestionBase):
     id: int
+    key: str
+    text: str
+    kind: str
+    options: List[int] = Field(default_factory=list)
+    min_value: Optional[int] = None
+    max_value: Optional[int] = None
+    weight: int
 
-    class Config:
-        from_attributes = True
+
+class AnswerInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # user_id is accepted only for backward compatibility and is never trusted.
+    user_id: Optional[int] = None
+    question_id: int = Field(gt=0)
+    value: int
 
 
-class AnswerBase(BaseModel):
+class Answer(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
     user_id: int
     question_id: int
     value: int
 
 
-class Answer(AnswerBase):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
-# --- Auth ---
-
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
+class AdminLoginRequest(LoginRequest):
+    pass
+
+
+class EmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
+
+
+class TokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=32, max_length=256)
+
+
+class PasswordResetRequest(TokenRequest):
+    new_password: str = Field(min_length=12, max_length=128)
 
 
 class MatchResponse(BaseModel):
-    user: User
-    match_percentage: float
-
-    class Config:
-        from_attributes = True
+    user: PublicUser
+    match_percentage: float = Field(ge=0, le=100)
 
 
-class AdminLoginRequest(BaseModel):
-    email: str
-    password: str
+class CsrfResponse(BaseModel):
+    csrf_token: str

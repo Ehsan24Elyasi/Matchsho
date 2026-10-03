@@ -1,0 +1,117 @@
+# Isolated local development and CI; production uses compose.production.yaml.
+# Pass --env-file explicitly; generate it with scripts/prepare_dev.py.
+x-app: &app
+  image: matchsho-backend:${RELEASE_ID:-dev}
+  build:
+    context: ./backend
+  environment: &app-env
+    ENVIRONMENT: development
+    DATABASE_URL: postgresql+psycopg2://matchsho:${POSTGRES_PASSWORD:?Generate an isolated env file}@postgres:5432/matchsho?sslmode=disable
+    SECRET_KEY: ${SECRET_KEY:?Generate an isolated env file}
+    OUTBOX_KEY: ${OUTBOX_KEY:?Generate an isolated env file}
+    OUTBOX_KEY_VERSION: "1"
+    ARGON2_CONCURRENCY: "2"
+    AUTO_CREATE_DB: "false"
+    COOKIE_SECURE: "false"
+    PUBLIC_BASE_URL: http://localhost:${FRONTEND_PORT:-8080}
+    CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-8080}
+    ALLOWED_HOSTS: localhost,127.0.0.1,matchsho-backend
+    TRUSTED_PROXY_IPS: 172.30.88.10
+    REQUIRE_EMAIL_VERIFICATION: "true"
+    SMTP_HOST: mailpit
+    SMTP_PORT: "1025"
+    SMTP_STARTTLS: "false"
+    SMTP_SSL: "false"
+    SMTP_SECURITY: none
+    ACTIVE_CYCLE: pilot-2026
+    ALLOWED_POOLS: male,female
+    SMTP_FROM: noreply@matchsho.test
+    NO_OUTBOUND_EMAIL: "false"
+    ADMIN_EMAIL: ${ADMIN_EMAIL:?Generate an isolated env file}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Generate an isolated env file}
+    RELEASE_ID: ${RELEASE_ID:-dev}
+  read_only: true
+  tmpfs:
+    - /tmp:size=32m,mode=1777
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  networks: [pilot]
+
+services:
+  postgres:
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      POSTGRES_DB: matchsho
+      POSTGRES_USER: matchsho
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate an isolated env file}
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U matchsho -d matchsho]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [pilot]
+  migrate:
+    <<: *app
+    command: [python, -m, pilot.migrate]
+    restart: "no"
+    healthcheck:
+      disable: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+  matchsho-backend:
+    <<: *app
+    command: [uvicorn, main:app, --host, 0.0.0.0, --port, "8000", --proxy-headers, --forwarded-allow-ips=172.30.88.10, --no-access-log]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    expose: ["8000"]
+  worker:
+    <<: *app
+    command: [python, -m, pilot.worker]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      mailpit:
+        condition: service_started
+    healthcheck:
+      disable: true
+  frontend:
+    image: matchsho-frontend:${RELEASE_ID:-dev}
+    build:
+      context: ./frontend
+    depends_on:
+      matchsho-backend:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:${FRONTEND_PORT:-8080}:8080
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/cache/nginx:size=32m,uid=101,gid=101
+      - /var/run:size=1m,uid=101,gid=101
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks:
+      pilot:
+        ipv4_address: 172.30.88.10
+  mailpit:
+    image: axllent/mailpit@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+    # Local-only test sink; never relays to real inboxes.
+    ports:
+      - 127.0.0.1:${MAILPIT_PORT:-8025}:8025
+    networks: [pilot]
+volumes:
+  postgres-data:
+networks:
+  pilot:
+    ipam:
+      config:
+        - subnet: 172.30.88.0/24

@@ -1,0 +1,179 @@
+# Optional Kubernetes deployment template; render with scripts/render_k8s.py.
+# LoadBalancer is the direct TLS edge. Do not put an unconfigured ingress in front.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: matchsho
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchsho-backend
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {app: matchsho, component: backend}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: matchsho, component: backend}
+      annotations: {matchsho/release: "__RELEASE_ID__"}
+    spec:
+      serviceAccountName: matchsho
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: __BACKEND_IMAGE__
+          command: [uvicorn, main:app, --host, 0.0.0.0, --port, "8000", --proxy-headers, "--forwarded-allow-ips=$(TRUSTED_PROXY_IPS)", --no-access-log]
+          envFrom: [{secretRef: {name: matchsho-runtime}}]
+          env:
+            - {name: ENVIRONMENT, value: production}
+            - {name: AUTO_CREATE_DB, value: "false"}
+            - {name: TRUSTED_PROXY_IPS, value: "__PROXY_CIDR__"}
+            - {name: RELEASE_ID, value: "__RELEASE_ID__"}
+          ports: [{name: http, containerPort: 8000}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: db-ca, mountPath: /run/db-ca, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http, httpHeaders: [{name: Host, value: 127.0.0.1}]}
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet: {path: /health/live, port: http, httpHeaders: [{name: Host, value: 127.0.0.1}]}
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests: {cpu: 100m, memory: 192Mi}
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - {name: db-ca, secret: {secretName: matchsho-db-ca}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: matchsho-backend}
+spec:
+  selector: {app: matchsho, component: backend}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: matchsho-worker}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: matchsho, component: worker}
+  template:
+    metadata:
+      labels: {app: matchsho, component: worker}
+      annotations: {matchsho/release: "__RELEASE_ID__"}
+    spec:
+      serviceAccountName: matchsho
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: __BACKEND_IMAGE__
+          command: [python, -m, pilot.worker]
+          envFrom: [{secretRef: {name: matchsho-runtime}}]
+          env:
+            - {name: ENVIRONMENT, value: production}
+            - {name: AUTO_CREATE_DB, value: "false"}
+            - {name: RELEASE_ID, value: "__RELEASE_ID__"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: db-ca, mountPath: /run/db-ca, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+      volumes:
+        - {name: db-ca, secret: {secretName: matchsho-db-ca}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: matchsho-frontend}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: matchsho, component: frontend}
+  template:
+    metadata:
+      labels: {app: matchsho, component: frontend}
+      annotations: {matchsho/release: "__RELEASE_ID__"}
+    spec:
+      serviceAccountName: matchsho
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: frontend
+          image: __FRONTEND_IMAGE__
+          ports: [{name: https, containerPort: 8443}, {name: health, containerPort: 8080}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /etc/nginx/conf.d/default.conf, subPath: default.conf, readOnly: true}
+            - {name: tls, mountPath: /run/tls, readOnly: true}
+            - {name: cache, mountPath: /var/cache/nginx}
+            - {name: run, mountPath: /var/run}
+            - {name: tmp, mountPath: /tmp}
+          readinessProbe:
+            httpGet: {path: /healthz, port: health}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: health}
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - {name: config, configMap: {name: matchsho-nginx-__RELEASE_ID__}}
+        - name: tls
+          secret:
+            secretName: matchsho-tls
+            items:
+              - {key: tls.crt, path: fullchain.pem}
+              - {key: tls.key, path: privkey.pem}
+        - {name: cache, emptyDir: {}}
+        - {name: run, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: matchsho-frontend}
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector: {app: matchsho, component: frontend}
+  ports: [{name: https, port: 443, targetPort: https}]

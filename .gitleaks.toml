@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public CPython release-signing fingerprint in upstream Python image metadata"
+condition = "AND"
+paths = ['''artifacts/pilot/evidence/backend-container[^/]*\.json$''']
+regexTarget = "match"
+regexes = ['''GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D''']

@@ -1,0 +1,139 @@
+{
+  "encoder": {
+    "sharp": "0.35.4",
+    "vips": "8.18.6",
+    "webp": "1.6.0"
+  },
+  "assets": [
+    {
+      "source": "src/Matchsho.jpg",
+      "sourceSha256": "3de55d26bb6bc4deee41b5f506e6f9caa3bd88fe9b90d681ac2eab4c6610aa33",
+      "sourceBytes": 1420214,
+      "sourceFormat": "png",
+      "file": "matchsho-logo.webp",
+      "kind": "logo",
+      "sha256": "4158393cadbce56b00b0d1c74cc109d39c0d439996aa72cafe92bbe9f6829e0c",
+      "bytes": 12008,
+      "width": 192,
+      "height": 94,
+      "transform": "trim near-transparent border (threshold 8/255); resize width to 192; lossless WebP"
+    },
+    {
+      "source": "src/avatar-male.png",
+      "sourceSha256": "f425a956fae6c22f2f66f3f6965a21e5c93ac1cea2769f6b6fe6767973837781",
+      "sourceBytes": 500371,
+      "sourceFormat": "png",
+      "file": "avatar-male.webp",
+      "kind": "avatar",
+      "sha256": "01c5f42a16fbae91fc3b436f26ea77295a4216a8c68891fb0993b2db2b194007",
+      "bytes": 7040,
+      "width": 192,
+      "height": 192,
+      "transform": "resize width to 192; WebP quality 88, alpha quality 100"
+    },
+    {
+      "source": "src/avatar-female-3d.png",
+      "sourceSha256": "98dcc120718b8346354af6e5a52cf4a0800304ad962e677d8336f054f06714f4",
+      "sourceBytes": 159354,
+      "sourceFormat": "png",
+      "file": "avatar-female.webp",
+      "kind": "avatar",
+      "sha256": "86175242e92ea09c8058ebc00ff2832cb033451aeb8ea81b8583d2cac100f2f5",
+      "bytes": 6648,
+      "width": 192,
+      "height": 192,
+      "transform": "resize width to 192; WebP quality 88, alpha quality 100"
+    },
+    {
+      "source": "src/6.jpg",
+      "sourceSha256": "f12a15044bafd5ab9abfcefca9b361ca7cf305760416952066ab5e72eab230c9",
+      "sourceBytes": 29769,
+      "sourceFormat": "jpeg",
+      "file": "dorm-room.jpg",
+      "kind": "illustration",
+      "sha256": "f12a15044bafd5ab9abfcefca9b361ca7cf305760416952066ab5e72eab230c9",
+      "bytes": 29769,
+      "width": 407,
+      "height": 402,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/4.jpg",
+      "sourceSha256": "a68f3b9ff2b2899bd4622f584b57f6cee1621e9df7dc8ead14c0deedc1a460a6",
+      "sourceBytes": 29353,
+      "sourceFormat": "jpeg",
+      "file": "dorm-life.jpg",
+      "kind": "illustration",
+      "sha256": "a68f3b9ff2b2899bd4622f584b57f6cee1621e9df7dc8ead14c0deedc1a460a6",
+      "bytes": 29353,
+      "width": 367,
+      "height": 403,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/1.jpg",
+      "sourceSha256": "73757f39181bdbee52caf8b48673da602dafb6e8085c58a3dbcad70cbd617bd9",
+      "sourceBytes": 27242,
+      "sourceFormat": "jpeg",
+      "file": "dorm-1.jpg",
+      "kind": "illustration",
+      "sha256": "73757f39181bdbee52caf8b48673da602dafb6e8085c58a3dbcad70cbd617bd9",
+      "bytes": 27242,
+      "width": 354,
+      "height": 375,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/2.jpg",
+      "sourceSha256": "99aaa304d12250b7f46efbf1671e37ca134da1e08fc11524698dc1c59502132b",
+      "sourceBytes": 14917,
+      "sourceFormat": "jpeg",
+      "file": "dorm-2.jpg",
+      "kind": "illustration",
+      "sha256": "99aaa304d12250b7f46efbf1671e37ca134da1e08fc11524698dc1c59502132b",
+      "bytes": 14917,
+      "width": 331,
+      "height": 271,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/3.jpg",
+      "sourceSha256": "549b1d889dadb9b04c6a8ded4f0cc4ef54185a7b6e9a825ea6d7a93b1da24ba9",
+      "sourceBytes": 24371,
+      "sourceFormat": "jpeg",
+      "file": "dorm-3.jpg",
+      "kind": "illustration",
+      "sha256": "549b1d889dadb9b04c6a8ded4f0cc4ef54185a7b6e9a825ea6d7a93b1da24ba9",
+      "bytes": 24371,
+      "width": 390,
+      "height": 380,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/5.jpg",
+      "sourceSha256": "57c6cce5aef3c6154c1c6b51a3dd13874fa9fb7b95217e877ab24c7d337902d9",
+      "sourceBytes": 22521,
+      "sourceFormat": "jpeg",
+      "file": "dorm-5.jpg",
+      "kind": "illustration",
+      "sha256": "57c6cce5aef3c6154c1c6b51a3dd13874fa9fb7b95217e877ab24c7d337902d9",
+      "bytes": 22521,
+      "width": 378,
+      "height": 371,
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "src/7.jpg",
+      "sourceSha256": "d9015ac970ecc77438cc2f76408de6221a11cd0f8e87aee8f6a01c6f199b8344",
+      "sourceBytes": 23271,
+      "sourceFormat": "jpeg",
+      "file": "dorm-7.jpg",
+      "kind": "illustration",
+      "sha256": "d9015ac970ecc77438cc2f76408de6221a11cd0f8e87aee8f6a01c6f199b8344",
+      "bytes": 23271,
+      "width": 432,
+      "height": 396,
+      "transform": "unchanged copy"
+    }
+  ]
+}

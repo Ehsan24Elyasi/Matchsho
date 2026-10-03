@@ -1,0 +1,339 @@
+{
+  "change": "prepare-matchsho-for-dormitory-pilot",
+  "source_revision": "",
+  "backend_image": "",
+  "frontend_image": "",
+  "schema_revision": "0002_pilot",
+  "lockfile_hashes": {},
+  "institution": "",
+  "cycle": "",
+  "cohort_size": 0,
+  "operator": "",
+  "support_contact": "",
+  "start_at": "",
+  "rollback_image": "",
+  "authorization": "pending",
+  "evidence": {
+    "ci": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "security_privacy": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "postgres_concurrency": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "migration_rollback": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "browser": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "dependency_scan": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "secret_scan": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "container_scan": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "load": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "production_tls_cookies": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "database_tls": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "real_smtp": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "restore_drill": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "working_alerts": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "roster_and_policy": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "operator_walkthrough": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    },
+    "support_and_retention": {
+      "status": "pending",
+      "owner": "",
+      "verified_at": "",
+      "path": ""
+    }
+  },
+  "audit_findings": [
+    {
+      "id": 1,
+      "status": "pending-verification",
+      "implementation": "Explicit owner/peer/operator DTOs; private answers and identity excluded; snapshot history",
+      "test": "test_peer_privacy_consent_pool_block_and_same_group_history; test_terminal_invitation_does_not_expose_later_group_members",
+      "evidence": ""
+    },
+    {
+      "id": 2,
+      "status": "pending-verification",
+      "implementation": "Serialized domain transactions, fresh membership/occupancy reads",
+      "test": "test_postgresql_last_place_and_allocation_races; test_postgresql_admission_races_allocation",
+      "evidence": ""
+    },
+    {
+      "id": 3,
+      "status": "pending-verification",
+      "implementation": "Single-winner terminal invitation transitions and idempotent retries",
+      "test": "test_postgresql_accept_cancel_single_winner; test_terminal_idempotency_expiry_and_atomic_outbox",
+      "evidence": ""
+    },
+    {
+      "id": 4,
+      "status": "pending-verification",
+      "implementation": "Independent PostgreSQL HMAC quota buckets survive business rollback",
+      "test": "test_limiter_survives_business_rollback_and_unrelated_login",
+      "evidence": ""
+    },
+    {
+      "id": 5,
+      "status": "pending-verification",
+      "implementation": "Private API, fixed trusted proxy, Nginx overwrites forwarded identity",
+      "test": "test_forwarded_headers_cannot_change_application_throttle_identity; published spoof check",
+      "evidence": ""
+    },
+    {
+      "id": 6,
+      "status": "pending-verification",
+      "implementation": "DB sessions, auth_version, rotation/replay and immediate revocation",
+      "test": "test_copied_access_token_revoked_on_logout; test_postgres_reset_and_old_password_login_serialize; test_postgres_refresh_race_revokes_the_winning_branch",
+      "evidence": ""
+    },
+    {
+      "id": 7,
+      "status": "pending-verification",
+      "implementation": "Roster-only claim; quotas before hash/token/email and bounded Argon2",
+      "test": "test_fifty_students_can_request_claims_behind_one_campus_ip; test_hash_and_verify_share_the_memory_concurrency_cap",
+      "evidence": ""
+    },
+    {
+      "id": 8,
+      "status": "pending-verification",
+      "implementation": "Same-origin /api behind real Nginx",
+      "test": "published stack smoke and real browser journey",
+      "evidence": ""
+    },
+    {
+      "id": 9,
+      "status": "pending-verification",
+      "implementation": "Versioned bilateral behavior/accepted-preference score with half-up rounding",
+      "test": "test_questionnaire_behavior_not_importance_and_midnight",
+      "evidence": ""
+    },
+    {
+      "id": 10,
+      "status": "pending-verification",
+      "implementation": "Purpose-aware active/eligible/pool/cycle/consent/block/capacity filters",
+      "test": "test_score_group_minimum_consent_and_pending_closure; test_room_guards_move_rollback_suspension_and_reconciliation",
+      "evidence": ""
+    },
+    {
+      "id": 11,
+      "status": "pending-verification",
+      "implementation": "Explicit room/group pool, cycle, target capacity and roster eligibility",
+      "test": "test_room_guards_move_rollback_suspension_and_reconciliation; test_preflight_reports_legacy_sharing_without_evicting",
+      "evidence": ""
+    },
+    {
+      "id": 12,
+      "status": "pending-verification",
+      "implementation": "Individual departure closes only that occupancy and allocation history",
+      "test": "test_individual_departure_preserves_room_and_last_removal; test_assigned_deletion_keeps_other_bed_until_individual_exit",
+      "evidence": ""
+    },
+    {
+      "id": 13,
+      "status": "pending-verification",
+      "implementation": "Unanimous version-bound approval, reconfirmation and valid independent proposals",
+      "test": "test_unanimous_admission_and_other_proposal_reconfirmation",
+      "evidence": ""
+    },
+    {
+      "id": 14,
+      "status": "pending-verification",
+      "implementation": "Owner support/consent/block/closure plus audited operator queues",
+      "test": "test_report_is_owner_and_operator_only_and_does_not_punish_target; test_closed_deactivation_resolves_after_individual_departure; UI branch cases",
+      "evidence": ""
+    },
+    {
+      "id": 15,
+      "status": "pending-verification",
+      "implementation": "Original landing composition restored, first-viewport title/CTA repaired, accessible responsive menu",
+      "test": "Landing geometry at five widths and keyboard menu",
+      "evidence": ""
+    },
+    {
+      "id": 16,
+      "status": "pending-verification",
+      "implementation": "Shared RTL fonts/tokens/grid/focus/contrast",
+      "test": "Seven contrast checks; five viewport screenshots and geometry",
+      "evidence": ""
+    },
+    {
+      "id": 17,
+      "status": "pending-verification",
+      "implementation": "Meaningful v2 labels, owner server draft and prefill/resume",
+      "test": "test_draft_does_not_publish_and_submit_invalidates; keyboard and draft browser tests",
+      "evidence": ""
+    },
+    {
+      "id": 18,
+      "status": "pending-verification",
+      "implementation": "Native forms/radios/dialog focus, unique labels, keyboard journey",
+      "test": "Full keyboard-only login/questionnaire/profile/invitation",
+      "evidence": ""
+    },
+    {
+      "id": 19,
+      "status": "pending-verification",
+      "implementation": "Entity ID routes and restored history",
+      "test": "Profile deep-link refresh/back/forward browser cases",
+      "evidence": ""
+    },
+    {
+      "id": 20,
+      "status": "pending-verification",
+      "implementation": "Truthful error/empty state separation and explicit retry",
+      "test": "503/network group response browser tests",
+      "evidence": ""
+    },
+    {
+      "id": 21,
+      "status": "pending-verification",
+      "implementation": "Single route loader, stale response cancellation and shared active navigation",
+      "test": "Single-fetch/stale response and cross-tab refresh tests",
+      "evidence": ""
+    },
+    {
+      "id": 22,
+      "status": "pending-verification",
+      "implementation": "Original landing images/fonts/logo, provenance-verified versioned assets, no forced splash, pausable/reduced-motion decoration",
+      "test": "Cold landing load below600KiB; logo below40KiB and avatar below80KiB; browser checks",
+      "evidence": ""
+    },
+    {
+      "id": 23,
+      "status": "pending-verification",
+      "implementation": "Roster/correction/student history/group/room/departure/support/delivery tools",
+      "test": "Operator UI branch tests and real allocation/departure journey",
+      "evidence": ""
+    },
+    {
+      "id": 24,
+      "status": "pending-verification",
+      "implementation": "Backend router/service/model boundaries; frontend API/session/router/features",
+      "test": "Backend suite, browser suite and static checks",
+      "evidence": ""
+    },
+    {
+      "id": 25,
+      "status": "pending-verification",
+      "implementation": "Untrusted data rendered via safe DOM text and allowlisted URLs",
+      "test": "XSS payload test without CSP and URL unit test",
+      "evidence": ""
+    },
+    {
+      "id": 26,
+      "status": "pending-verification",
+      "implementation": "Effective production DB URL requires verify-full and mounted CA",
+      "test": "test_effective_database_url_rejects_tls_bypass; ops DatabaseGuardTests",
+      "evidence": ""
+    },
+    {
+      "id": 27,
+      "status": "pending-verification",
+      "implementation": "Encrypted transactional outbox, leases/dedup/retry/erasure and worker",
+      "test": "test_postgres_workers_claim_distinct_events_and_smtp_holds_no_connection; test_ambiguous_smtp_crash_retries_the_same_event_identity; real local Mailpit capture",
+      "evidence": ""
+    },
+    {
+      "id": 28,
+      "status": "pending-verification",
+      "implementation": "Python3.11/PostgreSQL16 CI plus built-image browser and scans",
+      "test": "Local combined suite and published image journey; remote CI pending",
+      "evidence": ""
+    },
+    {
+      "id": 29,
+      "status": "pending-verification",
+      "implementation": "Schema-aware readiness, one-shot migrations, cache protocol, guarded backup/restore/alerts",
+      "test": "Migration fixtures,14 ops guards, local staged failure/rollback; external drills pending",
+      "evidence": ""
+    },
+    {
+      "id": 30,
+      "status": "pending-verification",
+      "implementation": "Bounded pagination and batched matching with explicit cohort ceiling",
+      "test": "Bounded pagination/query test and a verified50-session600-second load run",
+      "evidence": ""
+    }
+  ],
+  "unresolved_release_blockers": [
+    "Record nominated commit, immutable registry images and CI evidence.",
+    "Complete browser, security, privacy, concurrency, migration, scan and capacity verification.",
+    "Verify target TLS/proxy/database identity, real SMTP and working alerts.",
+    "Measure an off-host backup/restore and compatible target rollback drill.",
+    "Confirm institution, cohort, policies, operator, support and admission authorization."
+  ]
+}

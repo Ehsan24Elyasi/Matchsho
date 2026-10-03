@@ -1,0 +1,16 @@
+{
+  "name": "matchsho-frontend",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/unit.test.mjs",
+    "test:contrast": "node scripts/check-contrast.mjs",
+    "test:e2e": "playwright test",
+    "serve:test": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

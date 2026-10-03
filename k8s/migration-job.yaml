@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: matchsho-migrate-__RELEASE_ID__
+  labels: {app: matchsho, component: migration}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels: {app: matchsho, component: migration}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: migrate
+          image: __BACKEND_IMAGE__
+          command: [python, -m, pilot.migrate]
+          envFrom: [{secretRef: {name: matchsho-runtime}}]
+          env:
+            - {name: ENVIRONMENT, value: production}
+            - {name: AUTO_CREATE_DB, value: "false"}
+            - {name: RELEASE_ID, value: "__RELEASE_ID__"}
+          volumeMounts:
+            - {name: db-ca, mountPath: /run/db-ca, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 384Mi}
+      volumes:
+        - {name: db-ca, secret: {secretName: matchsho-db-ca}}
+        - {name: tmp, emptyDir: {}}

@@ -1,0 +1,144 @@
+name: pilot-ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_DB: matchsho_test
+          POSTGRES_USER: matchsho_test
+          POSTGRES_PASSWORD: fixture-only-ci-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U matchsho_test -d matchsho_test"
+          --health-interval 3s --health-timeout 3s --health-retries 30
+    env:
+      ENVIRONMENT: test
+      AUTO_CREATE_DB: "false"
+      DATABASE_URL: postgresql+psycopg2://matchsho_test:fixture-only-ci-password@127.0.0.1:5432/matchsho_test?sslmode=disable
+      TEST_DATABASE_URL: postgresql+psycopg2://matchsho_test:fixture-only-ci-password@127.0.0.1:5432/matchsho_test?sslmode=disable
+      SECURITY_TEST_DATABASE_URL: postgresql+psycopg2://matchsho_test:fixture-only-ci-password@127.0.0.1:5432/matchsho_test?sslmode=disable
+      SECRET_KEY: isolated-ci-fixture-key-with-more-than-thirty-two-characters
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1"
+      SMTP_SECURITY: none
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare generated evidence directory
+        run: mkdir -p artifacts/pilot/evidence
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.lock
+      - name: Install exact hashed dependencies
+        run: pip install --require-hashes -r backend/requirements-dev.lock
+      - name: Static checks and operational guard tests
+        run: |
+          ruff check backend scripts
+          python -m unittest discover -s scripts/tests -v
+      - name: Migrate disposable PostgreSQL and verify metadata
+        working-directory: backend
+        run: |
+          python -m pilot.migrate
+          alembic check
+      - name: PostgreSQL security, migration and transactional regression tests
+        working-directory: backend
+        run: pytest -q --junitxml=../artifacts/pilot/evidence/backend-junit.xml
+      - name: Exact dependency audit
+        run: pip-audit -r backend/requirements.lock --require-hashes -f json -o artifacts/pilot/evidence/dependency-audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-evidence
+          path: artifacts/pilot/evidence/
+          retention-days: 30
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Prepare generated evidence directory
+        run: mkdir -p artifacts/pilot/evidence
+      - name: Secret scan with redacted evidence
+        run: >-
+          docker run --rm -v "$PWD:/repo"
+          zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --config /repo/.gitleaks.toml --redact --report-format json --report-path /repo/artifacts/pilot/evidence/secret-scan.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secret-evidence
+          path: artifacts/pilot/evidence/secret-scan.json
+
+  deployed-browser:
+    runs-on: ubuntu-latest
+    needs: [backend, secret-scan]
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare generated evidence directories
+        run: mkdir -p artifacts/pilot/evidence docs/pilot/evidence
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend and audit exact dependencies
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+          npm audit --audit-level=high
+          npx playwright install --with-deps chromium
+      - name: Start disposable built images behind real Nginx
+        run: |
+          python scripts/prepare_dev.py --output .env.pilot-ci
+          docker compose --env-file .env.pilot-ci -p matchsho-pilot-ci config --quiet
+          docker compose --env-file .env.pilot-ci -p matchsho-pilot-ci up --build --detach --wait --wait-timeout 180
+          docker compose --env-file .env.pilot-ci -p matchsho-pilot-ci exec -T matchsho-backend python create_admin.py
+      - name: Browser journeys, geometry, accessibility and API proxy contract
+        working-directory: frontend
+        env:
+          BASE_URL: http://localhost:8080
+          MAILPIT_URL: http://localhost:8025
+          PILOT_ENV_FILE: ../.env.pilot-ci
+        run: npm run test:e2e
+      - name: Scan built runtime images (high/critical block)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/artifacts/pilot/evidence:/evidence" aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --db-repository ghcr.io/aquasecurity/trivy-db:2 --exit-code 1 --severity HIGH,CRITICAL --format json --output /evidence/backend-container.json matchsho-backend:local-test
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/artifacts/pilot/evidence:/evidence" aquasec/trivy@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image --db-repository ghcr.io/aquasecurity/trivy-db:2 --exit-code 1 --severity HIGH,CRITICAL --format json --output /evidence/frontend-container.json matchsho-frontend:local-test
+      - name: Capture source, lock and image identities
+        run: |
+          git rev-parse HEAD > artifacts/pilot/evidence/source-revision.txt
+          sha256sum backend/requirements.lock backend/requirements-dev.lock frontend/package-lock.json > artifacts/pilot/evidence/lock-sha256.txt
+          docker image inspect matchsho-backend:local-test matchsho-frontend:local-test --format '{{.Id}}' > artifacts/pilot/evidence/local-image-identities.txt
+      - name: Capture stack diagnostics
+        if: always()
+        run: docker compose --env-file .env.pilot-ci -p matchsho-pilot-ci logs --no-color > artifacts/pilot/evidence/stack.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployed-browser-evidence
+          path: |
+            artifacts/pilot/evidence/
+            frontend/playwright-report/
+            frontend/test-results/
+            frontend/dist/asset-manifest.json
+          retention-days: 30
+      - name: Remove only disposable CI services
+        if: always()
+        run: docker compose --env-file .env.pilot-ci -p matchsho-pilot-ci down --volumes

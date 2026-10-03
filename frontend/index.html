@@ -14,69 +14,38 @@
     <meta name="keywords" content="مچ شو , matchsho, matchshoapp, انتخاب هم‌اتاقی, خوابگاه دانشجویی">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="./src/Matchsho.jpg">
+    <link rel="icon" type="image/webp" href="/assets/original-brand/matchsho-logo.webp">
 
     <!-- Styles & Scripts -->
-    <link rel="stylesheet" href="styles.css">
-    <script src="script.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/tailwind.css">
+    <link rel="stylesheet" href="/landing.css">
+    <script type="module" src="/js/landing.js"></script>
 
     <!-- Open Graph / Social Preview -->
     <meta property="og:title" content="مچ شو | MatchSho">
     <meta property="og:description" content="مچ شو، سامانه هوشمند انتخاب هم‌اتاقی برای دانشجویان.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="http://matchshoapp.ir/">
-    <meta property="og:image" content="http://matchshoapp.ir/src/Matchsho.jpg">
+    <meta property="og:url" content="https://matchshoapp.ir/">
+    <meta property="og:image" content="https://matchshoapp.ir/src/Matchsho.jpg">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="مچ شو | MatchSho">
     <meta name="twitter:description" content="مچ شو، سامانه هوشمند انتخاب هم‌اتاقی برای دانشجویان.">
-    <meta name="twitter:image" content="http://matchshoapp.ir/src/Matchsho.jpg">
+    <meta name="twitter:image" content="https://matchshoapp.ir/src/Matchsho.jpg">
 
     <!-- Schema.org JSON-LD for Structured Data -->
 <!-- Schema.org JSON-LD for Structured Data -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "WebSite",
-      "name": "مچ شو | MatchSho",
-      "url": "http://matchshoapp.ir/",
-      "description": "مچ شو (MatchSho) سامانه هوشمند انتخاب هم‌اتاقی برای دانشجویان خوابگاه. سریع و راحت هم‌اتاقی مناسب پیدا کنید.",
-      "publisher": {
-        "@type": "Organization",
-        "name": "MatchSho",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "http://matchshoapp.ir/src/Matchsho.jpg"
-        }
-      }
-    },
-    {
-      "@type": "Organization",
-      "name": "مچ شو | MatchSho",
-      "url": "http://matchshoapp.ir/",
-      "logo": "http://matchshoapp.ir/src/Matchsho.jpg",
-    }
-  ]
-}
-</script>
+
 
 </head>
 
 <body>
+<a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
 
-<section id="splash" class="fixed inset-0 flex items-center justify-center bg-[var(--bg-gray)] z-[1001]">
-        <div class="text-center">
-            <img src="./src/Matchsho.jpg" alt="Matchsho Logo" class="h-48 mx-auto mb-12 animate-pulse">
-            <h1 class="text-4xl font-bold text-[var(--primary-dark)]" data-lang="welcome">به Matchsho خوش اومدی</h1>
-            <p class="mt-4 text-lg text-[var(--gray)]" data-lang="welcome_subtitle">هم‌اتاقی رویاهاتو با چند کلیک پیدا کن</p>
-        </div>
-</section>
 
-<div id="main-content" class="hidden">
+
+<div id="main-content">
 
     <!-- Header -->
 <header dir="rtl" class="border-b">
@@ -84,26 +53,26 @@
 
     <!-- راست: لوگو و نام سایت -->
     <div class="flex items-center gap-2">
-        <img href="#" src="./src/Matchsho.jpg" alt="Matchsho Logo" class="h-16">
-      <a href="#">
-        <h1 class="text-2xl font-bold text-blue-600">Matchsho</h1>
+        <img src="/assets/original-brand/matchsho-logo.webp" width="96" height="47" decoding="async" alt="Matchsho Logo" class="h-16">
+      <a href="/" aria-label="مچ‌شو، خانه">
+        <span class="text-2xl font-bold text-blue-600">Matchsho</span>
       </a>
       
     </div>
 
     <!-- دکمه همبرگر (مخصوص موبایل) -->
-    <button id="hamburger" class="hamburger md:hidden ">
+    <button id="hamburger" type="button" class="hamburger menu-toggle md:hidden" aria-label="منو" aria-controls="mobile-menu" aria-expanded="false">
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
       <span class="hamburger-line"></span>
     </button>
 
     <!-- منوی دسکتاپ -->
-    <nav class="nav-menu hidden md:flex flex-row-reverse items-center gap-6 w-full justify-between">
+    <nav aria-label="منوی اصلی" class="nav-menu hidden md:flex flex-row-reverse items-center gap-6 w-full justify-between">
       <!-- لینک‌ها سمت راست -->
       <div class="flex items-center gap-6">
-        <a href="./dashboard/index_dashboard.html#login" class="btn-login">ورود</a>
-        <a href="./dashboard/index_dashboard.html#signup" class="btn-signup">ثبت‌نام</a>
+        <a href="/dashboard/index_dashboard.html#login" class="btn-login">ورود</a>
+        <a href="/dashboard/index_dashboard.html#register" class="btn-signup">ثبت‌نام</a>
       </div>
       <!-- دکمه‌ها سمت چپ -->
       <div class="flex items-center gap-4 mr-12">
@@ -114,55 +83,59 @@
   </div>
 
   <!-- منوی موبایل -->
-  <div id="mobile-menu" class="mobile-menu hidden md:hidden">
+  <div id="mobile-menu" class="mobile-menu hidden md:hidden" aria-label="منوی موبایل">
     <a href="#how-it-works" class="mobile-link">چطور کار می‌کنه</a>
     <a href="#Faq" class="mobile-link">سوالات متداول</a>
-    <a href="./dashboard/index_dashboard.html" class="btn-login mt-2">ورود</a>
-    <a href="./dashboard/index_dashboard.html#signup" class="btn-signup mt-2">ثبت‌نام</a>
+    <a href="/dashboard/index_dashboard.html#login" class="btn-login mt-2">ورود</a>
+    <a href="/dashboard/index_dashboard.html#register" class="btn-signup mt-2">ثبت‌نام</a>
   </div>
+  <noscript>
+    <nav class="noscript-menu" aria-label="ورود و ثبت‌نام">
+      <a href="/dashboard/index_dashboard.html#login">ورود</a>
+      <a href="/dashboard/index_dashboard.html#register">ثبت‌نام</a>
+    </nav>
+  </noscript>
 </header>
 
     <!-- Main Content -->
-<main class="flex flex-col items-center justify-center w-full text-center relative">
+<main id="main" class="hero flex flex-col items-center justify-center w-full text-center relative">
 
     <!-- Bubble Container -->
-    <div class="bubble-container absolute inset-0">
+    <div class="bubble-container absolute inset-0" aria-hidden="true">
         <!-- Left Side Bubbles -->
-        <div class="bubble animated-image hidden md:block absolute" style="top: 90px; left: 100px; width: 260px; height: 260px;">
-            <img src="./src/3.jpg" alt="Profile 1">
+        <div class="bubble bubble-1 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-3.jpg" width="390" height="380" decoding="async" alt="">
         </div>
-        <div class="bubble animated-image hidden md:block absolute" style="bottom: 50px; left:270px; width: 250px; height: 190px;">
-            <img src="./src/2.jpg" alt="Profile 2">
+        <div class="bubble bubble-2 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-2.jpg" width="331" height="271" decoding="async" alt="">
         </div>
-        <div class="bubble animated-image hidden md:block absolute" style="bottom: 250px; left:310px; width: 190px; height: 190px;">
-            <img src="./src/4.jpg" alt="Profile 3">
+        <div class="bubble bubble-3 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-life.jpg" width="367" height="403" decoding="async" alt="">
         </div>
-        <div class="bubble animated-image hidden md:block absolute" style="bottom: 200px; left:80px; width: 140px; height: 140px;">
-            <img src="./src/5.jpg" alt="Profile 4">
+        <div class="bubble bubble-4 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-5.jpg" width="378" height="371" decoding="async" alt="">
         </div>
 
         <!-- Right Side Bubbles -->
-        <div class="bubble animated-image hidden md:block absolute" style="top: 390px; right: 200px; width: 240px; height: 240px;">
-            <img src="./src/1.jpg" alt="Profile 5">
+        <div class="bubble bubble-5 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-1.jpg" width="354" height="375" decoding="async" alt="">
         </div>
-        <div class="bubble animated-image hidden md:block absolute" style="top: 130px; right: 230px; width: 200px; height: 200px;">
-            <img src="./src/4.jpg" alt="Profile 6">
+        <div class="bubble bubble-6 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-life.jpg" width="367" height="403" decoding="async" alt="">
         </div>
-        <div class="bubble animated-image hidden md:block absolute" style="top: 230px; right: 30px; width: 170px; height: 170px;">
-            <img src="./src/7.jpg" alt="Profile 7">
+        <div class="bubble bubble-7 animated-image hidden md:block absolute">
+            <img src="/assets/original-brand/dorm-7.jpg" width="432" height="396" decoding="async" alt="">
         </div>
     </div>
 
     <!-- Headline -->
-    <div class="sentence text-4xl md:text-5xl font-bold mb-12 md:mb-16 mt-10 md:mt-12 z-10">
-        یه هم‌اتاقی می‌خوای؟👋
-    </div>
+    <h1 class="sentence hero-title text-4xl md:text-5xl font-bold z-10">یه هم‌اتاقی می‌خوای؟👋</h1>
 
     <!-- Rotating Words -->
-    <div class="sentence text-4xl md:text-4xl font-bold z-10">
+    <div class="sentence hero-words text-4xl md:text-4xl font-bold z-10" aria-label="یه آدم باحال، تمیز، آروم و سازگار با عادت‌هات">
         <span class="text-4xl md:text-5xl"> یه آدم</span>
-        <div class="rotating-wrapper inline-block ml-2" id="rotator">
-            <span class="word"> باحال😎</span>
+        <div class="rotating-wrapper inline-block ml-2" id="rotator" aria-hidden="true">
+            <span class="word active"> باحال😎</span>
             <span class="word"> تمیز🧼</span>
             <span class="word"> آروم😌</span>
             <span class="word"> منظم📋</span>
@@ -181,9 +154,11 @@
     </div>
 
     <!-- Call to Action Button -->
-    <a href="./dashboard/index_dashboard.html#signup" class="mt-14 md:mt-20 inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 z-10">
+    <div class="hero-actions"><a href="/dashboard/index_dashboard.html#register" class="button mt-14 md:mt-20 inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 md:px-8 py-3 md:py-4 rounded-lg font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 z-10">
         همین حالا شروع کن!
-    </a>
+    </a></div>
+    <p class="pilot-note">ویژهٔ دانشجویان فهرست تأییدشدهٔ دانشگاه یا خوابگاه</p>
+    <button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false" hidden>توقف حرکت</button>
 
 </main>
 
@@ -196,17 +171,17 @@
             <div class="step-box">
                 <div class="text-8xl sm:text-9xl lg:text-9xl font-bold text-blue-600 mb-4"> 🥳</div>
                 <h4 class="text-2xl font-semibold mb-2">1. ثبت‌نام کن</h4>
-                <p class="text-gray-600 text-lg">یه حساب رایگان بساز و اطلاعات ات رو وارد کن.</p>
+                <p class="text-gray-600 text-lg">با ایمیل ثبت‌شده در فهرست خوابگاه، حسابت رو فعال کن.</p>
             </div>
             <div class="step-box">
                 <div class="text-8xl sm:text-9xl lg:text-9xl font-bold text-blue-600 mb-4">👩‍🔬</div>
                 <h4 class="text-2xl font-semibold mb-2">2. تست هم اتاقی بده </h4>
-                <p class="text-gray-600 text-lg">با فیلترهای ساده، هم‌اتاقی مناسب رو پیدا کن.</p>
+                <p class="text-gray-600 text-lg">عادت‌ها و ترجیحاتت رو بگو و پیشنهادهای سازگار رو ببین.</p>
             </div>
             <div class="step-box">
                 <div class="text-8xl sm:text-9xl lg:text-9xl font-bold text-blue-600 mb-4">🤝</div>
                 <h4 class="text-2xl font-semibold mb-2">3. مچ شو!</h4>
-                <p class="text-gray-600 text-lg">با هم‌اتاقی جدیدت هماهنگ شو و اتاق ت رو پر کن!</p>
+                <p class="text-gray-600 text-lg">با رضایت هم گروه بسازید؛ تخصیص اتاق با مسئول خوابگاهه.</p>
             </div>
         </div>
     </div>
@@ -233,9 +208,9 @@
             <!-- Card 2 -->
             <div class="text-center p-6 bg-gray-50 rounded-3xl shadow-sm hover:shadow-md transition-shadow duration-300">
                 <div class="text-8xl sm:text-9xl lg:text-9xl font-bold text-blue-600 mb-4">👀</div>
-                <h4 class="text-2xl font-semibold mb-2 text-blue-600">جستجوی دانشجویی</h4>
+                <h4 class="text-2xl font-semibold mb-2 text-blue-600">تطبیق بر اساس پرسشنامه</h4>
                 <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
-                    هم‌اتاقی‌ت رو بر اساس دانشگاه، شهر، یا رشته‌ت پیدا کن.
+                    پاسخ‌هایت را با عادات و ترجیحات هم‌اتاقی‌های دیگر مقایسه می‌کنیم.
                 </p>
             </div>
 
@@ -244,7 +219,7 @@
                 <div class="text-8xl sm:text-9xl lg:text-9xl font-bold text-blue-600 mb-4">🔥</div>
                 <h4 class="text-2xl font-semibold mb-2 text-blue-600">ساده و رایگان</h4>
                 <p class="text-sm sm:text-base text-gray-600 leading-relaxed">
-                    تو چند دقیقه و بدون هزینه هم‌اتاقی مناسب رو پیدا کن.
+                    با چند پاسخ کوتاه و بدون پرداخت در سامانه، انتخابت رو شروع کن.
                 </p>
             </div>
         </div>
@@ -254,10 +229,11 @@
     <!-- Social Proof Section -->
 <section class="py-8 sm:py-12 md:py-16 lg:py-20 w-full rounded-3xl sm:rounded-[40px] lg:rounded-[50px] relative bg-gray-100">
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-    <h3 class="text-2xl sm:text-3xl font-bold text-center text-center mb-8 sm:mb-10 md:mb-12 text-gray-800">کاربرای ما چی می‌گن؟🚀</h3>
+    <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-10 md:mb-12 text-gray-800">مچ‌شدن بر اساس سبک زندگی 🚀</h3>
     <div class="relative">
       <!-- دکمه چپ -->
       <button id="scrollRight"
+        aria-label="مشاهده کارت قبلی"
         class="hidden sm:flex absolute left-[-15px] md:left-[-20px] lg:left-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-9 sm:w-10 md:w-11 lg:w-12 h-9 sm:h-10 md:h-11 lg:h-12 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
         <svg class="w-4 sm:w-5 md:w-5 lg:w-6 h-4 sm:h-5 md:h-5 lg:h-6" viewBox="0 0 320 512" fill="currentColor">
           <path
@@ -270,32 +246,33 @@
         class="flex overflow-x-auto gap-3 sm:gap-4 md:gap-5 lg:gap-6 pb-4 sm:pb-6 scroll-snap-x mandatory scrollbar-hidden px-1 sm:px-2 md:px-0 snap-proximity">
         <div
           class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
-          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"دیگه لازم نبود آگهی بزنم یا با ده نفر چت کنم. توی Matchsho یکی پیدا شد که دقیقاً همونی بود که می‌خواستم."</p>
-          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">سینا، دانشگاه شریف</p>
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">پاسخ‌های پرسشنامه کمک می‌کند قبل از هم‌اتاقی‌شدن، درباره عادات روزمره گفت‌وگو کنید.</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">پیشنهاد مچ‌شو</p>
         </div>
             <div
           class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
-          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"🎮🎧 من گیمرم، اونم گیمره! دیگه چی می‌خوای؟ 😎 Thanks Matchsho!"</p>
-          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">ایمان ، دانشگاه قم</p>
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">امتیاز سازگاری یک ابزار تصمیم‌یار است؛ انتخاب نهایی همیشه با خود دانشجوست.</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">شفاف و قابل‌فهم</p>
         </div>      
         <div
           class="bg-white p-3 sm:p-4 md:p-5 lg:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl shadow-sm text-center w-[calc(100%-2rem)] sm:min-w-[250px] md:min-w-[280px] lg:min-w-[300px] scroll-snap-align-center shrink-0">
-          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">"من گیاه‌خوارم، وسواس دارم و شب‌بیدارم... ولی Matchsho دقیقاً یکی مثل من پیدا کرد!"</p>
-          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">کامیار، دانشگاه علوم پزشکی تهران</p>
+          <p class="italic text-gray-600 text-sm sm:text-base md:text-base lg:text-lg mb-2 sm:mb-3 md:mb-4">اطلاعات پرسشنامه برای کاربران دیگر نمایش داده نمی‌شود و فقط برای محاسبه مچ استفاده می‌شود.</p>
+          <p class="font-semibold text-blue-600 text-sm sm:text-base md:text-base lg:text-lg">حریم خصوصی</p>
         </div>
       </div>
 
       <!-- دکمه راست -->
       <button id="scrollLeft"
+        aria-label="مشاهده کارت بعدی"
         class="hidden sm:flex absolute right-[-15px] md:right-[-20px] lg:right-[-30px] top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full w-9 sm:w-10 md:w-11 lg:w-12 h-9 sm:h-10 md:h-11 lg:h-12 flex items-center justify-center text-blue-600 hover:bg-blue-600 hover:text-white transition z-30">
-        <svg class="w-4.sm:w-5 md:w-5 lg:w-6 h-4 sm:h-5 md:h-5 lg:h-6" viewBox="0 0 320 512" fill="currentColor">
+        <svg class="w-4 sm:w-5 md:w-5 lg:w-6 h-4 sm:h-5 md:h-5 lg:h-6" viewBox="0 0 320 512" fill="currentColor">
           <path
             d="M267.3 244.7c6.2 6.2 6.2 16.4 0 22.6l-160 160c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6L233.4 256 84.7 107.3c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0l160 160z" />
         </svg>
       </button>
     </div>
 
-    <p class="text-center text-sm sm:text-base md:text-lg lg:text-xl mt-6 sm:mt-7 md:mt-8 text-gray-600">بیش از ۵۰۰۰ دانشجو با Matchsho هم‌اتاقی‌شون رو پیدا کردن!</p>
+    <p class="text-center text-sm sm:text-base md:text-lg lg:text-xl mt-6 sm:mt-7 md:mt-8 text-gray-600">با چند پاسخ کوتاه، هم‌اتاقی سازگارترت را پیدا کن.</p>
   </div>
 </section>
 
@@ -306,35 +283,35 @@
     <h2 class="text-2xl sm:text-3xl font-bold text-center mb-10">پرسش‌های متداول</h2>
 
     <div class=" grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:max-w-6xl mx-auto rounded-[50px]">
-        <div class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition ">
-            <div class="flex justify-between items-start gap-2 mb-2 rounded-[15px]">
-                <h3 class="text-base sm:text-lg font-semibold leading-tight">Matchsho چطور کار می‌کنه؟</h3>
+        <details class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition ">
+            <summary class="flex w-full justify-between items-start gap-2 mb-2 rounded-[15px] text-right">
+                <span class="faq-question text-base sm:text-lg font-semibold leading-tight">Matchsho چطور کار می‌کنه؟</span>
                 <span class="arrow text-gray-500 text-xl">▼</span>
-            </div>
-            <p class="text-sm sm:text-base text-gray-700">
-                کافیه ثبت‌نام کنی، عادات  رو وارد کنی، و ما هم‌اتاقی مناسب رو بهت پیشنهاد می‌دیم.
+            </summary>
+            <p id="faq-answer-1" class="text-sm sm:text-base text-gray-700">
+                با ایمیل فهرست خوابگاه ثبت‌نام کن، عادت‌ها و ترجیحاتت رو وارد کن و پیشنهادهای مجاز رو ببین.
             </p>
-        </div>
+        </details>
 
-        <div class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex justify-between items-start gap-2 mb-2 rounded-[15px]">
-                <h3 class="text-base sm:text-lg font-semibold leading-tight">آیا Matchsho رایگانه؟</h3>
+        <details class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
+            <summary class="flex w-full justify-between items-start gap-2 mb-2 rounded-[15px] text-right">
+                <span class="faq-question text-base sm:text-lg font-semibold leading-tight">آیا Matchsho رایگانه؟</span>
                 <span class="arrow text-gray-500 text-xl">▼</span>
-            </div>
-            <p class="text-sm sm:text-base text-gray-700">
+            </summary>
+            <p id="faq-answer-2" class="text-sm sm:text-base text-gray-700">
                 بله! استفاده از Matchsho کاملاً رایگانه و نیازی به پرداخت هزینه نیست.
             </p>
-        </div>
+        </details>
 
-        <div class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
-            <div class="flex justify-between items-start gap-2 mb-2 rounded-[15px]">
-                <h3 class="text-base sm:text-lg font-semibold leading-tight">چطور مطمئن شم هم‌اتاقیم مناسبه؟</h3>
+        <details class="faq-item bg-white shadow-md rounded-xl p-6 hover:shadow-lg transition">
+            <summary class="flex w-full justify-between items-start gap-2 mb-2 rounded-[15px] text-right">
+                <span class="faq-question text-base sm:text-lg font-semibold leading-tight">چطور مطمئن شم هم‌اتاقیم مناسبه؟</span>
                 <span class="arrow text-gray-500 text-xl">▼</span>
-            </div>
-            <p class="text-sm sm:text-base text-gray-700">
-                ما با فیلترهای دقیق مثل عادات  بهت کمک می‌کنیم بهترین مچ رو پیدا کنی.
+            </summary>
+            <p id="faq-answer-3" class="text-sm sm:text-base text-gray-700">
+                شاخص سازگاری یک راهنماست و تضمین نیست. دربارهٔ عادت‌هاتون گفت‌وگو کنید؛ انتخاب نهایی با خودتونه.
             </p>
-        </div>
+        </details>
     </div>
 </section>
 
@@ -344,22 +321,22 @@
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <!-- Logo and Title -->
         <div class="mb-6 flex flex-col items-center sm:flex-row sm:justify-center sm:space-x-4 sm:space-x-reverse">
-            <img src="./src/Matchsho.jpg" alt="Matchsho Logo" class="h-12 mb-2 sm:mb-0 sm:ml-2">
-            <h1 class="text-2xl font-bold text-blue-600">Matchsho</h1>
-            <h1 class="text-lg text-white"> اتاقت رو با دوست جدیدت پر کن!</h1>
+            <img src="/assets/original-brand/matchsho-logo.webp" width="96" height="47" decoding="async" alt="Matchsho Logo" class="h-12 mb-2 sm:mb-0 sm:ml-2">
+            <span class="text-2xl font-bold text-blue-600">Matchsho</span>
+            <span class="text-lg text-white"> اتاقت رو با دوست جدیدت پر کن!</span>
         </div>
 
         <!-- Links -->
         <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-6 flex-wrap">
-            <a href="#about" class="hover:text-blue-400 transition">درباره ما</a>
-            <a href="#contact" class="hover:text-blue-400 transition">تماس با ما</a>
-            <a href="#privacy" class="hover:text-blue-400 transition">سیاست حریم خصوصی</a>
+            <a href="/about.html" class="hover:text-blue-400 transition">درباره ما</a>
+            <a href="/about.html#support" class="hover:text-blue-400 transition">تماس با ما</a>
+            <a href="/privacy.html" class="hover:text-blue-400 transition">سیاست حریم خصوصی</a>
             <a href="#Faq" class="hover:text-blue-400 transition">سوالات متداول</a>
         </div>
 
         <!-- Copyright -->
         <p class="mt-6 text-sm text-gray-400 text-center">
-            ساخته شده با <span class="text-blue-500">💙</span> در ایران - 1404
+            ساخته شده با <span class="text-blue-500">💙</span> در ایران
         </p>
     </div>
 </footer>
