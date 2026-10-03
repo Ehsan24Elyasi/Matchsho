@@ -1,10 +1,10 @@
 # Matchsho
 
-Matchsho (مچ‌شو) helps invited students find compatible roommates and lets a dormitory operator manage groups and room allocation. The pilot supports one institution, one active allocation cycle and a limited cohort. Completing local tests does not authorize admission of real students.
+Matchsho (مچ‌شو) helps students find compatible roommates and lets a dormitory operator manage groups and room allocation. The pilot supports one institution, one active allocation cycle and a limited cohort. Completing local tests does not authorize admission of real students.
 
 ## Current pilot
 
-- Roster-controlled email activation; the recipient chooses the password.
+- Immediate registration with student details, email and password; no email activation is required by default.
 - Argon2id, HttpOnly cookies, CSRF, database-backed revocable sessions and rotating refresh tokens.
 - Private versioned questionnaire, server drafts, bilateral preferences and explicit matching consent.
 - Purpose-aware profile access and two-way blocks; peer DTOs expose only allowed display fields.
@@ -24,6 +24,14 @@ Browser -> Nginx -> /api -> FastAPI -> PostgreSQL 16
 ```
 
 `backend/pilot/` separates identity, privacy, matching, invitations, housing and delivery. `frontend/js/` separates API/session/router/UI and features. Production ships only `frontend/dist/`, built from the original landing design, shared dashboard styles, local fonts and verified artwork.
+
+## Authentication mode
+
+The current default is `REQUIRE_EMAIL_VERIFICATION=false`. Students provide name, student ID, class, dormitory pool, email and a password of at least 12 characters. Registration creates an active account, its enrollment in the current cycle and a revocable session immediately. No roster import, OTP, confirmation email or SMTP delivery is needed to register or log in. Duplicate identities and operator restrictions still apply. Email ownership remains unverified in the database; peer access and room allocation use the configured authentication policy.
+
+Activation, resend, password-reset email and email-confirmation endpoints are disabled, including previously issued links and queued authentication mail. Login remains email/password. For forgotten passwords, contact the operator; no public password reset without proof of ownership is provided. Existing accounts and data are preserved.
+
+The previous roster/email flow remains available only when `REQUIRE_EMAIL_VERIFICATION=true` is explicitly enabled consistently for API and worker. This is optional and is not required for the current local workflow. Changing modes does not mark any email as verified.
 
 ## Isolated local stack
 

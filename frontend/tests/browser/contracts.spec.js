@@ -9,6 +9,7 @@ const owner = {
   discovery_consent: true,
   explanation_consent: false,
   notification_email: true,
+  email_verified: true,
   eligibility: { status: "eligible", pool: "female", cycle: "1405" },
 };
 const normal = {
@@ -126,6 +127,51 @@ async function fixture(page, overrides = {}) {
   });
   return calls;
 }
+test("password registration opens dashboard without requesting email", async ({ page }) => {
+  const calls = await fixture(page);
+  await page.goto("/dashboard/index_dashboard.html#register");
+  await page.getByLabel("نام و نام خانوادگی", { exact: true }).fill("دانشجوی جدید");
+  await page.getByLabel("شمارهٔ دانشجویی", { exact: true }).fill("1405999");
+  await page.getByLabel("ایمیل", { exact: true }).fill("new@example.org");
+  await page.getByLabel("رشتهٔ تحصیلی", { exact: true }).fill("مهندسی");
+  await page.getByLabel("گروه خوابگاه", { exact: true }).selectOption("female");
+  await page.getByLabel("رمز عبور", { exact: true }).fill("New-Password-123!");
+  await page.getByLabel("تکرار رمز عبور", { exact: true }).fill("Wrong-Password-123!");
+  await page.getByRole("button", { name: "ساخت حساب", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText("تکرار رمز عبور یکسان نیست.");
+  expect(calls.filter(c => c.path === "/auth/register")).toHaveLength(0);
+  await page.getByLabel("تکرار رمز عبور", { exact: true }).fill("New-Password-123!");
+  await page.getByRole("button", { name: "ساخت حساب", exact: true }).click();
+  await expect(page.locator("aside")).toBeVisible();
+  expect(calls.find(c => c.path === "/auth/register").body).toEqual({
+    name: "دانشجوی جدید", student_id: "1405999", email: "new@example.org",
+    class_name: "مهندسی", gender: "female", password: "New-Password-123!",
+  });
+  expect(calls.some(c => ["/auth/activate", "/auth/resend-verification", "/auth/forgot-password"].includes(c.path))).toBe(false);
+});
+
+test("disabled email authentication hides recovery and never submits old links", async ({ page }) => {
+  const calls = await fixture(page);
+  await page.goto("/dashboard/index_dashboard.html#login");
+  await expect(page.getByRole("link", { name: "رمزم را فراموش کرده‌ام" })).toHaveCount(0);
+  const token = "disabled-link-token-1234567890";
+  for (const route of ["activate", "reset-password", "verify-email"]) {
+    await page.goto(`/dashboard/index_dashboard.html#${route}?token=${token}`);
+    await expect(page.getByRole("heading", { name: "ورود با ایمیل و رمز عبور" })).toBeVisible();
+    expect(page.url()).not.toContain(token);
+    await expect(page.locator("form")).toHaveCount(0);
+  }
+  expect(calls.some(c => c.method === "POST")).toBe(false);
+});
+
+test("password-only account keeps privacy controls without offering unavailable email notices", async ({ page }) => {
+  await fixture(page, {"/auth/me": () => ({...owner, email_verified: false, notification_email: false})});
+  await page.goto("/dashboard/index_dashboard.html#account");
+  await expect(page.getByRole("heading", {name: "حساب و حریم خصوصی", exact: true})).toBeVisible();
+  await expect(page.getByRole("heading", {name: "اعلان‌های ایمیلی", exact: true})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "ذخیرهٔ انتخاب‌ها", exact: true})).toBeVisible();
+});
+
 for (const width of [360, 390, 768, 1280, 1440])
   test(`landing first paint and horizontal bounds ${width}`, async ({
     page,
@@ -484,7 +530,7 @@ test('block, correction case and remote session revocation use owner-scoped rout
   await page.getByRole('link',{name:'پشتیبانی و پیگیری',exact:true}).click();await expect(page.getByText('پیگیری CASE-100')).toBeVisible();await page.getByLabel('نوع درخواست').selectOption('correction');await page.getByLabel('شرح درخواست').fill('لطفاً ایمیل رسمی پرونده اصلاح شود');await page.getByRole('button',{name:'ثبت و دریافت شمارهٔ پیگیری'}).click();await expect(page.getByRole('status').filter({hasText:'درخواست ثبت شد.'})).toBeVisible();expect(calls.find(c=>c.path==='/me/corrections').body).toEqual({field:'email',description:'لطفاً ایمیل رسمی پرونده اصلاح شود'});
 });
 test('password reset form consumes the supplied token and does not leave it in the route',async({page})=>{
-  const calls=await fixture(page);const token='sample-reset-token-1234567890';await page.goto(`/dashboard/index_dashboard.html#reset-password?token=${token}`);await page.getByLabel('رمز عبور جدید',{exact:true}).fill('Changed-Password-2026!');expect(page.url()).not.toContain(token);await page.getByRole('button',{name:'ذخیرهٔ رمز جدید'}).click();await expect(page.getByText('رمز جدید ذخیره و نشست‌های قبلی باطل شد.')).toBeVisible();expect(calls.find(c=>c.path==='/auth/reset-password').body).toEqual({password:'Changed-Password-2026!',token});
+  const calls=await fixture(page, {'/pilot/config':()=>({email_verification_required:true})});const token='sample-reset-token-1234567890';await page.goto(`/dashboard/index_dashboard.html#reset-password?token=${token}`);await page.getByLabel('رمز عبور جدید',{exact:true}).fill('Changed-Password-2026!');expect(page.url()).not.toContain(token);await page.getByRole('button',{name:'ذخیرهٔ رمز جدید'}).click();await expect(page.getByText('رمز جدید ذخیره و نشست‌های قبلی باطل شد.')).toBeVisible();expect(calls.find(c=>c.path==='/auth/reset-password').body).toEqual({password:'Changed-Password-2026!',token});
 });
 test('operator move and unassign confirmations retain exact people capacity and reason',async({page})=>{
   const roomA={id:9,number:'A',dormitory:'خوابگاه آزمون',capacity:2,current_occupancy:2,pool:'male',cycle:'pilot-2026'};const roomB={...roomA,id:10,number:'B',current_occupancy:0};let group={id:5,capacity:2,members:[owner,normal],room:roomA,pool:'male',cycle:'pilot-2026',allocation_issues:[]};

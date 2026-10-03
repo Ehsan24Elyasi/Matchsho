@@ -452,7 +452,7 @@ def correct_enrollment(enrollment_id: int, data: EnrollmentCorrection, request: 
     conflict = bool(member and data.field in {"pool", "cycle", "student_id", "status"})
     impact = {"user_id": row.user_id, "group_id": member.group_id if member else None,
               "assignment_id": assigned.id if assigned else None, "requires_individual_exit": conflict,
-              "email_verification_required": data.field == "email" and bool(user)}
+              "email_verification_required": data.field == "email" and bool(user) and config.REQUIRE_EMAIL_VERIFICATION}
     if data.dry_run:
         return {"dry_run": True, "impact": impact}
     if conflict:
@@ -462,19 +462,23 @@ def correct_enrollment(enrollment_id: int, data: EnrollmentCorrection, request: 
             raise HTTPException(409, "شناسه با ردیف دیگری تداخل دارد.")
         if db.scalar(select(User.id).where(getattr(User, data.field) == value, User.id != (user.id if user else -1))):
             raise HTTPException(409, "شناسه با حساب دیگری تداخل دارد.")
-    if data.field == "email" and user:
+    if data.field == "email" and user and config.REQUIRE_EMAIL_VERIFICATION:
         email_throttle(db, request, value)
         queue_token(db, "verify_email", value, user=user, lifetime_hours=24)
     else:
         setattr(row, data.field, value)
         if user and data.field == "student_id":
             user.student_id = value
+        if user and data.field == "email":
+            user.email, user.email_verified = value, False
+            revoke_all(db, user)
         if user:
             account_changed(db, user, "enrollment")
     audit(db, admin, "enrollment.corrected", "enrollment", row.id, data.reason,
-          after={"field": data.field, "verification_pending": data.field == "email" and bool(user)})
+          after={"field": data.field, "verification_pending": impact["email_verification_required"]})
     db.commit()
-    return {"message": "اصلاح ثبت شد؛ تغییر ایمیل حساب پس از تأیید آدرس جدید اعمال می‌شود.", "impact": impact}
+    message = "اصلاح ثبت شد؛ تغییر ایمیل حساب پس از تأیید آدرس جدید اعمال می‌شود." if impact["email_verification_required"] else "اصلاح ثبت شد."
+    return {"message": message, "impact": impact}
 
 
 @router.post("/admin/users/{user_id}/security", dependencies=MUTATION)

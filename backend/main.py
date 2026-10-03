@@ -112,6 +112,7 @@ def readiness():
 @app.get("/pilot/config")
 def pilot_config():
     return {"institution": config.INSTITUTION_NAME, "cycle": config.ACTIVE_CYCLE,
+            "email_verification_required": config.REQUIRE_EMAIL_VERIFICATION,
             "support_contact": config.SUPPORT_CONTACT, "scoring_version": "2", "protocol": "3",
             "retention": {"audit_days": config.AUDIT_RETENTION_DAYS, "report_days": config.REPORT_RETENTION_DAYS,
                           "closed_allocation_days": 90, "backup_days": 30},

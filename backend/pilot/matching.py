@@ -36,7 +36,8 @@ class MatchingContext:
         rows = db.query(User, Enrollment, Questionnaire).join(Enrollment, Enrollment.user_id == User.id).join(
             Questionnaire, Questionnaire.user_id == User.id).filter(
             Enrollment.pool == e.pool, Enrollment.cycle == e.cycle, Enrollment.status == "eligible",
-            User.is_active.is_(True), User.account_status == "active", User.email_verified.is_(True),
+            User.is_active.is_(True), User.account_status == "active",
+            User.email_verified.is_(True) if config.REQUIRE_EMAIL_VERIFICATION else True,
             User.discovery_consent.is_(True), Questionnaire.version == VERSION,
             Questionnaire.complete.is_(True)).order_by(User.id).limit(2001).all()
         if len(rows) > 2000:

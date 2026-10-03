@@ -791,7 +791,9 @@ export async function accountPage(ctx) {
     el(
       "p",
       { class: "small muted" },
-      "پیام‌های ضروری امنیتی و بازیابی حساب همیشه ارسال می‌شوند.",
+      ctx.config.email_verification_required
+        ? "پیام‌های ضروری امنیتی و بازیابی حساب همیشه ارسال می‌شوند."
+        : "فعال‌سازی و بازیابی ایمیلی فعلاً غیرفعال است.",
     ),
     el("button", { type: "submit" }, "ذخیرهٔ ترجیح ایمیل"),
   );
@@ -812,7 +814,7 @@ export async function accountPage(ctx) {
     ),
     card(profile),
     card(consent),
-    card(emailPreference),
+    user.email_verified === true && card(emailPreference),
     card(
       el("h2", {}, "نشست‌های فعال"),
       el(

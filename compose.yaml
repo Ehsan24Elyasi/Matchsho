@@ -17,7 +17,7 @@ x-app: &app
     CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-8080}
     ALLOWED_HOSTS: localhost,127.0.0.1,matchsho-backend
     TRUSTED_PROXY_IPS: 172.30.88.10
-    REQUIRE_EMAIL_VERIFICATION: "true"
+    REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-false}
     SMTP_HOST: mailpit
     SMTP_PORT: "1025"
     SMTP_STARTTLS: "false"

@@ -179,7 +179,7 @@ def allocation_issues(db, group, room=None):
     for member in users:
         try:
             e = enrollment(db, member)
-            if not member.email_verified or (e.pool, e.cycle) != (group.pool, group.cycle):
+            if (config.REQUIRE_EMAIL_VERIFICATION and not member.email_verified) or (e.pool, e.cycle) != (group.pool, group.cycle):
                 issues.append(f"عضو {member.id} شرایط تأییدشدهٔ این گروه را ندارد")
         except HTTPException:
             issues.append(f"عضو {member.id} در این دوره واجد شرایط نیست")
@@ -268,7 +268,7 @@ def reconcile_group(group_id: int, payload: GroupPolicy, admin=Depends(require_a
         raise HTTPException(409, "ظرفیت توافق‌شده با تصمیم یک‌طرفهٔ مدیر تغییر نمی‌کند")
     for u in members(db, group.id):
         e = enrollment(db, u)
-        if not u.email_verified or (e.pool, e.cycle) != (payload.pool, payload.cycle):
+        if (config.REQUIRE_EMAIL_VERIFICATION and not u.email_verified) or (e.pool, e.cycle) != (payload.pool, payload.cycle):
             raise HTTPException(409, "ابتدا عضویت و هویت همهٔ اعضا را بازبینی کنید")
     group.pool, group.cycle, group.reconciliation_required = payload.pool, payload.cycle, False
     group.membership_revision += 1

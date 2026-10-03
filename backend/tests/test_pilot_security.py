@@ -34,6 +34,7 @@ PASSWORD = "Correct-Horse-Pilot-123!"
 
 @pytest.fixture(params=["sqlite"] + (["postgresql"] if os.getenv("SECURITY_TEST_DATABASE_URL") else []))
 def security_site(tmp_path, monkeypatch, request):
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", True)
     schema = None
     if request.param == "postgresql":
         url = os.environ["SECURITY_TEST_DATABASE_URL"]
@@ -95,6 +96,108 @@ def raw_mail_token(factory, purpose):
         payload = delivery.decrypt_payload(event)
         link = payload["body"].splitlines()[-1]
         return parse_qs(urlparse(link).fragment.split("?", 1)[1])["token"][0], event.id
+
+
+def password_registration_payload(**changes):
+    return {"email": "new-password@example.org", "student_id": " ۱۲۳۴۵۶ ", "name": "دانشجوی آزمایشی",
+            "class_name": "مهندسی", "gender": "male", "password": PASSWORD, **changes}
+
+
+def test_password_registration_needs_no_roster_or_email_and_can_login(security_site, monkeypatch):
+    client, factory = security_site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    payload = password_registration_payload()
+    assert client.post("/auth/register", json=payload).status_code == 403
+    result = client.post("/auth/register", json=payload, headers=csrf(client))
+    assert result.status_code == 201, result.text
+    assert result.json()["student_id"] == "123456"
+    assert result.json()["email_verified"] is False
+    assert result.json()["eligibility"] == {"status": "eligible", "pool": "male", "cycle": config.ACTIVE_CYCLE}
+    assert client.get("/auth/me").json()["id"] == result.json()["id"]
+    with factory() as db:
+        user = db.get(User, result.json()["id"])
+        assert user.role == "user" and user.password_hash.startswith("$argon2id$")
+        assert not user.email_verified and not user.notification_email
+        assert db.scalar(select(OutboxEvent.id)) is None
+        assert db.scalar(select(SecurityToken.id)) is None
+    assert client.post("/auth/logout", headers=csrf(client)).status_code == 200
+    assert client.get("/auth/me").status_code == 401
+    assert client.post("/auth/login", json={"email": payload["email"], "password": "wrong"}, headers=csrf(client)).status_code == 401
+    assert client.post("/auth/login", json={"email": payload["email"], "password": PASSWORD}, headers=csrf(client)).status_code == 200
+
+
+@pytest.mark.parametrize("conflict", [{"email": "student@example.org"}, {"student_id": "student"}])
+def test_password_registration_does_not_replace_existing_accounts(security_site, monkeypatch, conflict):
+    client, factory = security_site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    result = client.post("/auth/register", json=password_registration_payload(**conflict), headers=csrf(client))
+    assert result.status_code == 409
+    login(client)
+    with factory() as db:
+        assert len(list(db.scalars(select(User)))) == 3
+        assert db.scalar(select(Enrollment.id)) is None
+
+
+@pytest.mark.parametrize("change", [{"role": "admin"}, {"password": "short"}, {"gender": "other"}])
+def test_password_registration_validates_credentials_and_pool(security_site, monkeypatch, change):
+    client, factory = security_site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    assert client.post("/auth/register", json=password_registration_payload(**change), headers=csrf(client)).status_code == 422
+    with factory() as db:
+        assert len(list(db.scalars(select(User)))) == 3
+
+
+def test_disabled_email_auth_rejects_links_and_cancels_queued_mail(security_site, monkeypatch):
+    client, factory = security_site
+    assert client.post("/auth/forgot-password", json={"email": "student@example.org"}, headers=csrf(client)).status_code == 202
+    raw, event_id = raw_mail_token(factory, "reset_password")
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    for path, body in [
+        ("/auth/forgot-password", {"email": "student@example.org"}),
+        ("/auth/reset-password", {"token": raw, "password": PASSWORD}),
+        ("/auth/activate", {"token": raw, "password": PASSWORD}),
+        ("/auth/verify-email", {"token": raw}),
+        ("/auth/resend-verification", {"student_id": "student"}),
+    ]:
+        assert client.post(path, json=body, headers=csrf(client)).status_code == 404
+    sent = []
+    delivery.claim_events("disabled-email-test", session_factory=factory)
+    assert delivery.deliver_one(event_id, "disabled-email-test", session_factory=factory, sender=sent.append) == "cancelled"
+    assert sent == []
+    with factory() as db:
+        assert db.get(OutboxEvent, event_id).encrypted_payload is None
+    login(client)
+
+
+def test_password_registration_respects_existing_roster_restrictions(security_site, monkeypatch):
+    client, factory = security_site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    with factory() as db:
+        db.add(Enrollment(student_id="123456", email="new-password@example.org", name="Approved Name", class_name="CS",
+                          gender="male", pool="male", cycle=config.ACTIVE_CYCLE, status="ineligible"))
+        db.commit()
+    assert client.post("/auth/register", json=password_registration_payload(), headers=csrf(client)).status_code == 409
+    with factory() as db:
+        record = db.scalar(select(Enrollment).where(Enrollment.student_id == "123456"))
+        assert record.user_id is None and record.name == "Approved Name"
+
+
+def test_password_registration_keeps_email_correction_without_mail(security_site, monkeypatch):
+    client, factory = security_site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    result = client.post("/auth/register", json=password_registration_payload(), headers=csrf(client))
+    assert result.status_code == 201
+    with factory() as db:
+        record_id = db.scalar(select(Enrollment.id).where(Enrollment.user_id == result.json()["id"]))
+    login(client, "admin")
+    response = client.patch(f"/admin/enrollments/{record_id}", json={"field": "email", "value": "changed@example.org",
+                            "reason": "Operator reviewed email correction", "dry_run": False}, headers=csrf(client))
+    assert response.status_code == 200, response.text
+    assert response.json()["impact"]["email_verification_required"] is False
+    assert client.post("/auth/login", json={"email": "changed@example.org", "password": PASSWORD}, headers=csrf(client)).status_code == 200
+    with factory() as db:
+        assert db.scalar(select(OutboxEvent.id)) is None
+        assert db.get(Enrollment, record_id).email == "changed@example.org"
 
 
 def test_csrf_required_and_legacy_tokens_rejected(security_site):

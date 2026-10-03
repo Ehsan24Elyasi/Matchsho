@@ -28,6 +28,7 @@ def main() -> None:
         "FRONTEND_PORT": str(args.port),
         "MAILPIT_PORT": str(args.mailpit_port),
         "RELEASE_ID": "local-test",
+        "REQUIRE_EMAIL_VERIFICATION": "false",
     }
     # Exclusive creation prevents accidental replacement of an existing environment.
     with path.open("x", encoding="utf-8") as stream:

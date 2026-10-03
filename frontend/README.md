@@ -11,6 +11,10 @@ The UI uses semantic HTML and browser ES modules. `js/app.js` composes one shell
 - `BASE_URL=http://localhost:8088 MAILPIT_URL=http://localhost:8025 PILOT_ENV_FILE=../.env.pilot-test npm run test:e2e` adds the real PostgreSQL/Nginx/API/Mailpit journey. The supplied environment must be isolated test data. Fixtures are named `frontend-*` and never use production recipients.
 - `API_TARGET=http://127.0.0.1:8000 npm run serve:test` optionally proxies a local backend for development. It is not a production server.
 
+## Authentication
+
+The frontend reads `email_verification_required` from `/pilot/config`. The default false mode shows direct registration with name, student ID, email, class, dormitory pool, password and matching password confirmation. Success opens the student dashboard immediately. Email activation/recovery controls are hidden and old link routes display a login/support message without submitting a token. The optional true mode retains the roster/email journey.
+
 ## Visual system and acceptance
 
 The original landing composition uses isolated `landing.css` with the existing locally compiled `tailwind.css`: centered headline, rotating words, circular dorm pictures, emoji cards and dark footer. Dashboard and supporting pages share `styles.css`. Regular and bold fonts have separate original files. Controls are at least 44 px, focus is an amber 3 px outline, native inputs and FAQ remain focusable, and motion can pause or follow reduced-motion preferences. Layout acceptance widths: 360, 390, 768, 1280, 1440 px.

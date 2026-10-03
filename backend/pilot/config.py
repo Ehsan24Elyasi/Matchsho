@@ -17,6 +17,7 @@ SUPPORT_CONTACT = os.getenv("SUPPORT_CONTACT", "مدیریت خوابگاه")
 ALLOWED_POOLS = tuple(p.strip() for p in os.getenv("ALLOWED_POOLS", "male,female").split(",") if p.strip())
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax")
+REQUIRE_EMAIL_VERIFICATION = os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true"
 ACCESS_TOKEN_MINUTES = int(os.getenv("ACCESS_TOKEN_MINUTES", "15"))
 REFRESH_TOKEN_DAYS = int(os.getenv("REFRESH_TOKEN_DAYS", "7"))
 LOGIN_ACCOUNT_LIMIT = int(os.getenv("LOGIN_ACCOUNT_LIMIT", "20"))

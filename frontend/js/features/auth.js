@@ -1,6 +1,6 @@
 import { api, post } from "../api.js";
 import { session } from "../session.js";
-import { el, field, link, notice, bindForm, announce } from "../ui.js";
+import { el, field, selectField, link, notice, bindForm, announce } from "../ui.js";
 export const authRoutes = new Set([
   "login",
   "register",
@@ -12,6 +12,15 @@ export const authRoutes = new Set([
 ]);
 export function authPage(ctx) {
   const mode = ctx.path === "reset-password" ? "reset" : ctx.path;
+  const emailAuth = ctx.config.email_verification_required === true;
+  const directRegister = mode === "register" && !emailAuth;
+  if (!emailAuth && !["login", "register"].includes(mode)) {
+    history.replaceState(null, "", `${location.pathname}#${ctx.path}`);
+    return el("section", { class: "container card auth-card" },
+      el("h1", { tabindex: "-1" }, "ورود با ایمیل و رمز عبور"),
+      notice("فعلاً فعال‌سازی و بازیابی ایمیلی نداریم. برای مشکل ورود با مسئول خوابگاه تماس بگیر."),
+      link("ورود به حساب", "#login", "button"));
+  }
   const titles = {
     login: "خوش برگشتی",
     register: "شروع یک آشنایی تازه",
@@ -22,7 +31,9 @@ export function authPage(ctx) {
   };
   const subtitles = {
     login: "برای ادامهٔ انتخاب هم‌اتاقی وارد حسابت شو.",
-    register: "شمارهٔ دانشجویی و ایمیل ثبت‌شده در فهرست خوابگاه را وارد کن.",
+    register: directRegister
+      ? "مشخصاتت را وارد کن و برای حسابت رمز عبور انتخاب کن."
+      : "شمارهٔ دانشجویی و ایمیل ثبت‌شده در فهرست خوابگاه را وارد کن.",
     activate: "با این دعوت، هویت ثبت‌شدهٔ دانشگاه به حساب تو متصل می‌شود.",
     forgot: "لینک بازیابی به ایمیل ثبت‌شده در حساب ارسال می‌شود.",
     reset:
@@ -35,7 +46,7 @@ export function authPage(ctx) {
     form.append(
       field("ایمیل", "email", {
         type: "email",
-        required: mode !== "register",
+        required: mode !== "register" || directRegister,
         autocomplete: "email",
         dir: "ltr",
         placeholder: "name@university.ac.ir",
@@ -48,12 +59,24 @@ export function authPage(ctx) {
         required: true,
         autocomplete: "username",
         dir: "ltr",
-        maxlength: 64,
+        minlength: directRegister ? 2 : 1,
+        maxlength: 50,
       }),
     );
-  if (["login", "activate", "reset"].includes(mode))
+  if (directRegister) {
+    form.prepend(field("نام و نام خانوادگی", "name", { required: true, minlength: 2, maxlength: 100, autocomplete: "name" }));
     form.append(
-      field(mode === "login" ? "رمز عبور" : "رمز عبور جدید", "password", {
+      field("رشتهٔ تحصیلی", "class_name", { required: true, maxlength: 100 }),
+      selectField("گروه خوابگاه", "gender", [
+        { value: "", label: "انتخاب کن" },
+        { value: "male", label: "پسران" },
+        { value: "female", label: "دختران" },
+      ], "", { required: true }),
+    );
+  }
+  if (["login", "activate", "reset"].includes(mode) || directRegister)
+    form.append(
+      field(mode === "login" || directRegister ? "رمز عبور" : "رمز عبور جدید", "password", {
         type: "password",
         required: true,
         minlength: 12,
@@ -66,6 +89,10 @@ export function authPage(ctx) {
             : "حداقل ۱۲ نویسه؛ ترکیبی که در سایت دیگری استفاده نکرده‌ای.",
       }),
     );
+  if (directRegister)
+    form.append(field("تکرار رمز عبور", "password_confirm", {
+      type: "password", required: true, minlength: 12, maxlength: 128, autocomplete: "new-password", dir: "ltr",
+    }));
   let token =
     ctx.params.get("token") ||
     new URLSearchParams(location.search).get("token");
@@ -82,7 +109,7 @@ export function authPage(ctx) {
   }
   const labels = {
     login: "ورود به حساب",
-    register: "دریافت لینک فعال‌سازی",
+    register: directRegister ? "ساخت حساب" : "دریافت لینک فعال‌سازی",
     activate: "فعال‌سازی حساب",
     forgot: "ارسال لینک بازیابی",
     reset: "ذخیرهٔ رمز جدید",
@@ -91,6 +118,15 @@ export function authPage(ctx) {
   form.append(el("button", { type: "submit" }, labels[mode] || "ادامه"));
   bindForm(form, async (data) => {
     const values = Object.fromEntries(data);
+    if (directRegister) {
+      if (values.password !== values.password_confirm) throw new Error("تکرار رمز عبور یکسان نیست.");
+      delete values.password_confirm;
+      await post("/auth/register", values);
+      await session.load();
+      announce("حسابت ساخته شد و وارد شدی.");
+      ctx.navigate("home");
+      return;
+    }
     if (mode === "register" && !values.email) delete values.email;
     if (token) values.token = token;
     if (mode === "login") {
@@ -154,7 +190,7 @@ export function authPage(ctx) {
       el(
         "div",
         { class: "steps-inline" },
-        el("span", {}, "هویت تأییدشده"),
+        el("span", {}, emailAuth ? "هویت تأییدشده" : "ثبت‌نام ساده"),
         el("span", {}, "اطلاعات خصوصی"),
         el("span", {}, "رضایت مشترک"),
       ),
@@ -185,7 +221,8 @@ export function authPage(ctx) {
           ctx.admin ? "ورود دانشجو" : mode === "login" ? "هنوز حساب نداری؟ شروع کن" : "حساب داری؟ وارد شو",
           ctx.admin ? "/dashboard/index_dashboard.html#login" : mode === "login" ? "#register" : "#login",
         ),
-        link("رمزم را فراموش کرده‌ام", "#forgot"),
+        emailAuth ? link("رمزم را فراموش کرده‌ام", "#forgot")
+          : el("span", { class: "small muted" }, "برای مشکل ورود با مسئول خوابگاه تماس بگیر."),
       ),
       el("div", { class: "divider" }),
       el(

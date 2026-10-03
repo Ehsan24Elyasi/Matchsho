@@ -2,6 +2,12 @@
 
 All URLs below are backend paths; the browser prefixes `/api`. Mutations require the CSRF cookie/header, credentials included. Errors use `{detail: message}` or Pydantic field details. Lists use `{items,total,page,limit}`. Private responses are no-store. No student IDs, emails or answers in peer DTOs.
 
+## Authentication
+
+`GET /pilot/config` includes `email_verification_required` (default false). With verification disabled, `POST /auth/register` accepts `{email,password,name,class_name,student_id,gender}` and returns 201, the owner DTO and HttpOnly session cookies. Registration requires CSRF, uses Argon2id, preserves existing identities/operator restrictions and creates the enrollment automatically. It sends no email. `email_verified` remains false. Login uses `POST /auth/login` with email/password. Activation, resend, verification and email password-reset endpoints return 404 while disabled; queued authentication messages are cancelled before delivery.
+
+Only the explicit optional verification mode accepts student ID/email claims and returns 202 before activation through an emailed link.
+
 ## Questionnaire
 
 - `GET /questionnaire/schema`: `{version:2,scoring_version:'2',dimensions:[{key,label,kind:'time'|'choice',required,options:[{value,label}]}],capacities:[2,4,...]}`. Keys: sleep,wake,cleaning,guests,noise,tobacco(optional).

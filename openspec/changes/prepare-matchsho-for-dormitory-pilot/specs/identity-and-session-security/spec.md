@@ -1,5 +1,16 @@
 ## ADDED Requirements
 
+### Requirement: Direct password registration without email authentication by default
+The system SHALL default to `REQUIRE_EMAIL_VERIFICATION=false`. In this mode, a student SHALL register with name, student ID, class, dormitory pool, email and a password of at least 12 characters. The API SHALL create the active account, current-cycle enrollment and revocable session atomically without requiring a pre-imported roster, SMTP, OTP or an emailed link. It SHALL retain `email_verified=false`, enforce unique identities, preserve existing accounts and operator restrictions, and apply the configured email policy consistently to login, discovery and allocation. Email-related activation and recovery requirements apply only to the explicitly enabled optional verification mode; session, CSRF, role and privacy requirements apply in both modes.
+
+#### Scenario: Register without an email service or roster entry
+- **WHEN** verification is disabled and a new student submits valid profile details and a password
+- **THEN** registration returns 201, opens an authenticated session and creates the enrollment without generating a security token or authentication email.
+
+#### Scenario: Disable an already-issued authentication link
+- **WHEN** verification is disabled and an activation, email-confirmation or recovery link is submitted
+- **THEN** the endpoint returns 404 without consuming the link or changing credentials, and pending authentication mail is cancelled before delivery.
+
 ### Requirement: Database-backed revocable sessions
 The system SHALL bind every access and refresh token to a stable random session identifier and the current user authentication version. Every authenticated request SHALL validate token signature, type, expiry, active user, authentication version, and a non-revoked unexpired database session. Access tokens SHALL expire after 15 minutes by default; sessions SHALL have a seven-day absolute lifetime by default. Tokens without the required session/version claims SHALL be rejected after migration.
 

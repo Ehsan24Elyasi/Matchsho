@@ -72,23 +72,27 @@ def main():
     for index, row in enumerate(rows):
         client = Browser(args.origin)
         client.prepare()
-        status, _, _ = client.call("/api/auth/register", {"student_id": row["student_id"]})
-        assert status == 202, f"Fixture claim {index} failed with {status}; do not weaken the limiter"
-        deadline, token = time.monotonic() + 35, None
-        while time.monotonic() < deadline:
-            with urllib.request.urlopen(args.mailpit + "/api/v1/messages?limit=200", timeout=10) as response:
-                messages = json.load(response)
-            message = next((m for m in messages.get("messages", []) if any(t.get("Address") == row["email"] for t in m.get("To", []))), None)
-            if message:
-                with urllib.request.urlopen(args.mailpit + "/api/v1/message/" + message["ID"], timeout=10) as response:
-                    body = json.load(response).get("Text", "")
-                if "token=" in body:
-                    token = urllib.parse.unquote(body.split("token=", 1)[1].split()[0])
-                    break
-            time.sleep(.4)
-        assert token, f"Fixture message {index} failed to reach the local test sink"
         password = secrets.token_urlsafe(24)
-        assert client.call("/api/auth/activate", {"token": token, "password": password})[0] == 200
+        if admin.call("/api/pilot/config")[1].get("email_verification_required"):
+            status, _, _ = client.call("/api/auth/register", {"student_id": row["student_id"]})
+            assert status == 202, f"Fixture claim {index} failed with {status}; do not weaken the limiter"
+            deadline, token = time.monotonic() + 35, None
+            while time.monotonic() < deadline:
+                with urllib.request.urlopen(args.mailpit + "/api/v1/messages?limit=200", timeout=10) as response:
+                    messages = json.load(response)
+                message = next((m for m in messages.get("messages", []) if any(t.get("Address") == row["email"] for t in m.get("To", []))), None)
+                if message:
+                    with urllib.request.urlopen(args.mailpit + "/api/v1/message/" + message["ID"], timeout=10) as response:
+                        body = json.load(response).get("Text", "")
+                    if "token=" in body:
+                        token = urllib.parse.unquote(body.split("token=", 1)[1].split()[0])
+                        break
+                time.sleep(.4)
+            assert token, f"Fixture message {index} failed to reach the local test sink"
+            assert client.call("/api/auth/activate", {"token": token, "password": password})[0] == 200
+        else:
+            registration = {key: row[key] for key in ("student_id", "email", "name", "class_name", "gender")}
+            assert client.call("/api/auth/register", {**registration, "password": password})[0] == 201
         assert client.call("/api/me/consent", {"discovery": True, "explanations": False}, "PATCH")[0] == 200
         assert client.call("/api/questionnaire/me", {"version": 2, "answers": ANSWERS, "capacities": [2]}, "PUT")[0] == 200
         users.append({"email": row["email"], "password": password})

@@ -68,7 +68,7 @@ async function login(page, email, password, admin = false) {
   await page.getByRole("button", { name: "ورود به حساب", exact: true }).click();
   await expect(page.locator("aside")).toBeVisible();
 }
-test("real Compose student claim → questionnaire → invitation → group, and operator allocation", async ({
+test("real Compose student registration → questionnaire → invitation → group, and operator allocation", async ({
   browser,
   baseURL,
 }) => {
@@ -108,6 +108,7 @@ test("real Compose student claim → questionnaire → invitation → group, and
     cycle,
     reason: "اتاق موقت آزمون خودکار مسیر مرورگر",
   });
+  const emailAuth = (await (await admin.get("/api/pilot/config")).json()).email_verification_required === true;
   const password = `Frontend-${suffix}-Strong!`;
   const contexts = [];
   const pages = [];
@@ -122,23 +123,33 @@ test("real Compose student claim → questionnaire → invitation → group, and
         .getByLabel("شمارهٔ دانشجویی", { exact: true })
         .fill(row.student_id);
       await page.getByLabel("ایمیل", { exact: true }).fill(row.email);
-      await page.getByRole("button", { name: "دریافت لینک فعال‌سازی" }).click();
-      await expect(
-        page.getByText(
-          "اگر اطلاعات با یک حساب مجاز مطابقت داشته باشد، لینک ارسال می‌شود. پوشهٔ هرزنامه را هم بررسی کنید.",
-        ),
-      ).toBeVisible();
-      const token = await tokenFor(row.email);
-      await page.goto(
-        `/dashboard/index_dashboard.html#activate?token=${token}`,
-      );
-      await page.getByLabel("رمز عبور جدید", { exact: true }).fill(password);
-      await page
-        .getByRole("button", { name: "فعال‌سازی حساب", exact: true })
-        .click();
-      await expect(
-        page.getByText("حساب شما فعال شد. اکنون وارد شوید."),
-      ).toBeVisible();
+      if (emailAuth) {
+        await page.getByRole("button", { name: "دریافت لینک فعال‌سازی" }).click();
+        await expect(
+          page.getByText(
+            "اگر اطلاعات با یک حساب مجاز مطابقت داشته باشد، لینک ارسال می‌شود. پوشهٔ هرزنامه را هم بررسی کنید.",
+          ),
+        ).toBeVisible();
+        const token = await tokenFor(row.email);
+        await page.goto(
+          `/dashboard/index_dashboard.html#activate?token=${token}`,
+        );
+        await page.getByLabel("رمز عبور جدید", { exact: true }).fill(password);
+        await page
+          .getByRole("button", { name: "فعال‌سازی حساب", exact: true })
+          .click();
+        await expect(
+          page.getByText("حساب شما فعال شد. اکنون وارد شوید."),
+        ).toBeVisible();
+      } else {
+        await page.getByLabel("نام و نام خانوادگی", {exact:true}).fill(row.name);
+        await page.getByLabel("رشتهٔ تحصیلی", {exact:true}).fill(row.class_name);
+        await page.getByLabel("گروه خوابگاه", {exact:true}).selectOption(row.gender);
+        await page.getByLabel("رمز عبور", {exact:true}).fill(password);
+        await page.getByLabel("تکرار رمز عبور", {exact:true}).fill(password);
+        await page.getByRole("button", {name:"ساخت حساب",exact:true}).click();
+        await expect(page.locator("aside")).toBeVisible();
+      }
       await login(page, row.email, password);
       await page
         .getByRole("link", { name: "حساب و حریم خصوصی", exact: true })

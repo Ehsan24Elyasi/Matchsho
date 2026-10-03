@@ -58,6 +58,8 @@ def decrypt_payload(event):
 
 
 def eligibility(db, event, payload):
+    if event.purpose in {"claim", "reset_password", "verify_email"} and not config.REQUIRE_EMAIL_VERIFICATION:
+        return "cancelled"
     if aware(event.expires_at) <= now():
         return "expired"
     if not event.token_id:

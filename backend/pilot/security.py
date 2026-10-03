@@ -1,4 +1,4 @@
-"""Database-backed authentication, one-time roster claims and shared throttling."""
+"""Password registration, optional email authentication and shared throttling."""
 from __future__ import annotations
 
 import hashlib
@@ -13,8 +13,8 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy import func, select, update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func, or_, select, update
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -22,6 +22,7 @@ from models import AuditLog, User
 from pilot import config
 from pilot.security_models import AccountSession, DeletionLedger, Enrollment, RateBucket, SecurityToken
 from pilot.security_schemas import ClaimRequest, Credentials, EmailInput, PasswordToken, TokenInput
+from schemas import UserCreate
 
 router = APIRouter()
 logger = logging.getLogger("matchsho.security")
@@ -153,7 +154,13 @@ def _raw_access(request: Request):
 
 
 def valid_user(user):
-    return user and user.is_active and user.account_status == "active" and user.email_verified
+    return (user and user.is_active and user.account_status == "active"
+            and (not config.REQUIRE_EMAIL_VERIFICATION or user.email_verified))
+
+
+def require_email_auth():
+    if not config.REQUIRE_EMAIL_VERIFICATION:
+        raise HTTPException(404, "فعال‌سازی و بازیابی ایمیلی فعلاً غیرفعال است.")
 
 
 def valid_session(session, user, data):
@@ -232,6 +239,7 @@ def create_session(db, user, request):
 
 
 def queue_token(db, purpose, email, *, user=None, enrollment=None, lifetime_hours=1):
+    require_email_auth()
     from pilot.delivery import enqueue
     conditions = [SecurityToken.purpose == purpose, SecurityToken.used_at.is_(None),
                   SecurityToken.superseded_at.is_(None)]
@@ -272,9 +280,8 @@ def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
     return owner_user(user, db)
 
 
-@router.post("/auth/register", status_code=202, dependencies=[Depends(require_csrf)])
-@router.post("/auth/resend-verification", status_code=202, dependencies=[Depends(require_csrf)])
-def claim(data: ClaimRequest, request: Request, db: Session = Depends(get_db)):
+def claim(data: ClaimRequest, request: Request, db: Session):
+    require_email_auth()
     identity = normalize_identity(data.student_id)
     throttle(db, "claim-ip", client_ip(request), config.CLAIM_IP_LIMIT, 3600)
     throttle(db, "claim-identity", identity, config.CLAIM_ID_LIMIT, 3600)
@@ -298,8 +305,63 @@ def claim(data: ClaimRequest, request: Request, db: Session = Depends(get_db)):
     return GENERIC_MESSAGE
 
 
+@router.post("/auth/register", dependencies=[Depends(require_csrf)])
+def register(data: UserCreate | ClaimRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+    if config.REQUIRE_EMAIL_VERIFICATION:
+        if not isinstance(data, ClaimRequest):
+            raise HTTPException(422, "برای فعال‌سازی فقط شمارهٔ دانشجویی و ایمیل را وارد کنید.")
+        response.status_code = 202
+        return claim(data, request, db)
+    if not isinstance(data, UserCreate):
+        raise HTTPException(422, "مشخصات دانشجو و رمز عبور برای ثبت‌نام لازم است.")
+    from pilot.domain_events import before_mutation
+    identity, email = normalize_identity(data.student_id), normalize_email(str(data.email))
+    throttle(db, "register-ip", client_ip(request), config.CLAIM_IP_LIMIT, 3600)
+    throttle(db, "register-identity", identity, config.CLAIM_ID_LIMIT, 3600)
+    if data.gender not in config.ALLOWED_POOLS:
+        raise HTTPException(422, "گروه خوابگاه انتخاب‌شده در این دوره مجاز نیست.")
+    password_hash = hash_password(data.password)
+    before_mutation(db)
+    if db.scalar(select(User.id).where(or_(User.email == email, User.student_id == identity))):
+        raise HTTPException(409, "برای این ایمیل یا شمارهٔ دانشجویی حساب وجود دارد؛ وارد حساب شوید.")
+    if db.scalar(select(DeletionLedger.user_id).where(DeletionLedger.identity_digest == keyed_digest(identity))):
+        raise HTTPException(409, "برای ثبت‌نام دوباره با مسئول خوابگاه تماس بگیرید.")
+    record = db.scalar(select(Enrollment).where(or_(Enrollment.email == email, Enrollment.student_id == identity))
+                       .with_for_update())
+    if record and (record.email != email or record.student_id != identity or record.user_id
+                   or record.status != "eligible" or record.cycle != config.ACTIVE_CYCLE
+                   or record.pool not in config.ALLOWED_POOLS or record.gender != data.gender):
+        raise HTTPException(409, "مشخصات با پروندهٔ موجود سازگار نیست؛ با مسئول خوابگاه تماس بگیرید.")
+    if not record:
+        record = Enrollment(student_id=identity, email=email, name=data.name, class_name=data.class_name,
+                            gender=data.gender, pool=data.gender, cycle=config.ACTIVE_CYCLE, status="eligible")
+        db.add(record)
+    user = User(email=email, student_id=identity, name=record.name, class_name=record.class_name,
+                gender=record.gender, password_hash=password_hash, role="user", is_active=True,
+                account_status="active", email_verified=False, notification_email=False)
+    db.add(user)
+    try:
+        db.flush()
+        record.user_id = user.id
+        session, jti = create_session(db, user, request)
+        security_audit(db, "account.registered", user.id, str(record.id), request)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, "برای این ایمیل یا شمارهٔ دانشجویی حساب وجود دارد؛ وارد حساب شوید.") from None
+    response.status_code = 201
+    issue_cookies(response, user, session, jti)
+    return owner_user(user, db)
+
+
+@router.post("/auth/resend-verification", status_code=202, dependencies=[Depends(require_csrf)])
+def resend_verification(data: ClaimRequest, request: Request, db: Session = Depends(get_db)):
+    return claim(data, request, db)
+
+
 @router.post("/auth/activate", dependencies=[Depends(require_csrf)])
 def activate(data: PasswordToken, request: Request, response: Response, db: Session = Depends(get_db)):
+    require_email_auth()
     from pilot.domain_events import account_changed, before_mutation
     throttle(db, "token-ip", client_ip(request), config.TOKEN_IP_LIMIT, 900)
     initial = db.scalar(select(SecurityToken).where(SecurityToken.token_hash == digest(data.token)))
@@ -407,6 +469,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
 
 @router.post("/auth/forgot-password", status_code=202, dependencies=[Depends(require_csrf)])
 def forgot(data: EmailInput, request: Request, db: Session = Depends(get_db)):
+    require_email_auth()
     email = normalize_email(str(data.email))
     email_throttle(db, request, email)
     user = db.scalar(select(User).where(User.email == email).with_for_update())
@@ -418,6 +481,7 @@ def forgot(data: EmailInput, request: Request, db: Session = Depends(get_db)):
 
 @router.post("/auth/reset-password", dependencies=[Depends(require_csrf)])
 def reset(data: PasswordToken, request: Request, response: Response, db: Session = Depends(get_db)):
+    require_email_auth()
     throttle(db, "token-ip", client_ip(request), config.TOKEN_IP_LIMIT, 900)
     initial = db.scalar(select(SecurityToken).where(SecurityToken.token_hash == digest(data.token)))
     if not usable_token(initial, "reset_password"):
@@ -438,6 +502,7 @@ def reset(data: PasswordToken, request: Request, response: Response, db: Session
 
 @router.post("/auth/verify-email", dependencies=[Depends(require_csrf)])
 def verify_email(data: TokenInput, request: Request, db: Session = Depends(get_db)):
+    require_email_auth()
     from pilot.domain_events import account_changed, before_mutation
     throttle(db, "token-ip", client_ip(request), config.TOKEN_IP_LIMIT, 900)
     initial = db.scalar(select(SecurityToken).where(SecurityToken.token_hash == digest(data.token)))

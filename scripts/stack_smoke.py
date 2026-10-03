@@ -83,29 +83,37 @@ def main():
         assert admin.call("/api/admin/roster/import", {"rows": [row], "dry_run": False, "reason": "Synthetic stack acceptance"})[0] == 200
         student = Browser(args.origin)
         student.prepare()
-        assert student.call("/api/auth/register", {"student_id": student_id})[0] == 202
-        token = None
-        mail_start = time.monotonic()
-        while time.monotonic() - mail_start < 30:
-            with urllib.request.urlopen(args.mailpit + "/api/v1/messages", timeout=5) as response:
-                mail = json.load(response)
-            message = next((m for m in mail.get("messages", []) if any(t.get("Address") == email for t in m.get("To", []))), None)
-            if message:
-                with urllib.request.urlopen(args.mailpit + "/api/v1/message/" + message["ID"], timeout=5) as response:
-                    body = json.load(response).get("Text", "")
-                match = re.search(r"token=([^\s&]+)", body)
-                if match:
-                    token = urllib.parse.unquote(match[1])
-                    break
-            time.sleep(.5)
-        assert token, "Queued activation was not delivered by the worker to the test sink"
-        report["sink_delivery_seconds"] = round(time.monotonic() - mail_start, 2)
-        status, _, _ = student.call("/api/auth/activate", {"token": token, "password": secrets.token_urlsafe(20)})
-        assert status == 200, "Delivered one-time activation failed"
-        assert student.call("/api/auth/activate", {"token": token, "password": secrets.token_urlsafe(20)})[0] == 400
+        if admin.call("/api/pilot/config")[1].get("email_verification_required"):
+            assert student.call("/api/auth/register", {"student_id": student_id})[0] == 202
+            token = None
+            mail_start = time.monotonic()
+            while time.monotonic() - mail_start < 30:
+                with urllib.request.urlopen(args.mailpit + "/api/v1/messages", timeout=5) as response:
+                    mail = json.load(response)
+                message = next((m for m in mail.get("messages", []) if any(t.get("Address") == email for t in m.get("To", []))), None)
+                if message:
+                    with urllib.request.urlopen(args.mailpit + "/api/v1/message/" + message["ID"], timeout=5) as response:
+                        body = json.load(response).get("Text", "")
+                    match = re.search(r"token=([^\s&]+)", body)
+                    if match:
+                        token = urllib.parse.unquote(match[1])
+                        break
+                time.sleep(.5)
+            assert token, "Queued activation was not delivered by the worker to the test sink"
+            report["sink_delivery_seconds"] = round(time.monotonic() - mail_start, 2)
+            status, _, _ = student.call("/api/auth/activate", {"token": token, "password": secrets.token_urlsafe(20)})
+            assert status == 200, "Delivered one-time activation failed"
+            assert student.call("/api/auth/activate", {"token": token, "password": secrets.token_urlsafe(20)})[0] == 400
+        else:
+            registration = {key: row[key] for key in ("student_id", "email", "name", "class_name", "gender")}
+            assert student.call("/api/auth/register", {**registration, "password": secrets.token_urlsafe(20)})[0] == 201
+            assert student.call("/api/auth/me")[0] == 200
         assert student.call("/api/me/consent", {"discovery": True, "explanations": False}, "PATCH")[0] == 200
         assert student.call("/api/admin/groups")[0] == 403, "Role boundary failed"
-        report["checks"].extend(["roster-preview-and-import", "durable-mailpit-delivery", "one-time-activation",
+        auth_checks = (["durable-mailpit-delivery", "one-time-activation"]
+                       if admin.call("/api/pilot/config")[1].get("email_verification_required")
+                       else ["password-registration-without-email"])
+        report["checks"].extend(["roster-preview-and-import", *auth_checks,
                                 "same-origin-protected-mutation", "student-cannot-access-operator"])
         assert student.call("/api/auth/logout", {}, "POST")[0] == 200
         assert student.call("/api/me")[0] == 401
