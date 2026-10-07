@@ -126,6 +126,43 @@ def test_questionnaire_behavior_not_importance_and_midnight():
     assert questionnaire.alignment(left, right)[0] == 13  # 12.5 rounds up, not bankers' 12.
 
 
+def test_password_only_peers_can_match_form_group_and_receive_room(site, monkeypatch):
+    client, factory = site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
+    with factory() as db:
+        for uid in (1, 2):
+            db.get(User, uid).email_verified = False
+            db.get(User, uid).notification_email = False
+        db.commit()
+    assert 2 in [item["id"] for item in api(client, "GET", "/matches")["items"]]
+    assert api(client, "GET", "/profiles/2")["can_invite"] is True
+    gid = form_group(client)
+    assert gid in [item["id"] for item in api(client, "GET", "/matches", 3)["items"] if item["kind"] == "group"]
+    api(client, "POST", f"/admin/groups/{gid}/allocation", 9, {"room_id": 1, "reason": "تخصیص بدون تأیید ایمیل"})
+    with factory() as db:
+        assert occupancy(db, 1) == db.get(Room, 1).current_occupancy == 2
+        assert not db.get(User, 1).email_verified and not db.get(User, 2).email_verified
+        assert db.query(OutboxEvent).count() == 0
+
+
+def test_verified_email_mode_excludes_unverified_peers_and_blocks_allocation(site, monkeypatch):
+    client, factory = site
+    monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", True)
+    gid = form_group(client)
+    with factory() as db:
+        db.get(User, 1).email_verified = False
+        db.get(User, 4).email_verified = False
+        db.commit()
+    matches = api(client, "GET", "/matches", 3)["items"]
+    assert not any(item["kind"] == "group" and item["id"] == gid for item in matches)
+    assert not any(item["kind"] == "user" and item["id"] == 4 for item in matches)
+    api(client, "GET", "/profiles/4", 3, expected=404)
+    api(client, "POST", "/requests", 3, {"receiver_id": 4, "capacity": 4}, expected=409)
+    api(client, "POST", f"/admin/groups/{gid}/allocation", 9, {"room_id": 1, "reason": "کنترل تأیید ایمیل"}, expected=409)
+    with factory() as db:
+        assert db.query(RoomAssignment).count() == 0 and db.get(Room, 1).current_occupancy == 0
+
+
 def test_peer_privacy_consent_pool_block_and_same_group_history(site):
     client, factory = site
     result = api(client, "GET", "/matches")

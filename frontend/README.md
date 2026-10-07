@@ -6,14 +6,14 @@ The UI uses semantic HTML and browser ES modules. `js/app.js` composes one shell
 
 - `npm ci && npm run build` produces only deployable pages and assets in `dist/`.
 - Build output uses a SHA-256-derived `/assets/<version>/` namespace including modules, original fonts, images and image provenance. References in HTML, CSS and ES modules are rewritten together. HTML is revalidated by Nginx.
-- `npm test` exercises routing, URL safety and quoted roster import.
+- `npm test` exercises routing, URL safety, quoted roster import and local API proxy cookies/compression.
 - `npm run test:e2e` launches an isolated static server and browser contract tests.
 - `BASE_URL=http://localhost:8088 MAILPIT_URL=http://localhost:8025 PILOT_ENV_FILE=../.env.pilot-test npm run test:e2e` adds the real PostgreSQL/Nginx/API/Mailpit journey. The supplied environment must be isolated test data. Fixtures are named `frontend-*` and never use production recipients.
 - `API_TARGET=http://127.0.0.1:8000 npm run serve:test` optionally proxies a local backend for development. It is not a production server.
 
 ## Authentication
 
-The frontend reads `email_verification_required` from `/pilot/config`. The default false mode shows direct registration with name, student ID, email, class, dormitory pool, password and matching password confirmation. Success opens the student dashboard immediately. Email activation/recovery controls are hidden and old link routes display a login/support message without submitting a token. The optional true mode retains the roster/email journey.
+The frontend reads `email_verification_required` from `/pilot/config`. Failed startup requests show an explicit retry instead of guessing the registration mode. The default false mode shows direct registration with name, student ID, email, class, dormitory pool, password and matching password confirmation. Success opens the student dashboard immediately. Email activation/recovery controls are hidden and old link routes display a login/support message without submitting a token. The optional true mode retains the roster/email journey.
 
 ## Visual system and acceptance
 

@@ -102,6 +102,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm run build
+          npm test
           npm audit --audit-level=high
           npx playwright install --with-deps chromium
       - name: Start disposable built images behind real Nginx

@@ -127,6 +127,55 @@ async function fixture(page, overrides = {}) {
   });
   return calls;
 }
+test("failed pilot config blocks registration until retry loads the server mode", async ({ page }) => {
+  let failed = true;
+  const calls = await fixture(page, {
+    "/auth/me": () => ({ status: 401, data: { detail: "unauthenticated" } }),
+    "/auth/refresh": () => ({ status: 401, data: { detail: "unauthenticated" } }),
+    "/pilot/config": () => failed
+      ? { status: 503, data: { detail: "temporarily unavailable" } }
+      : { email_verification_required: true },
+  });
+  await page.goto("/dashboard/index_dashboard.html#register");
+  await expect(page.getByRole("heading", { name: "دریافت اطلاعات انجام نشد" })).toBeVisible();
+  await expect(page.locator("form")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "ساخت حساب", exact: true })).toHaveCount(0);
+  failed = false;
+  await page.getByRole("button", { name: "تلاش دوباره" }).click();
+  await expect(page.getByRole("button", { name: "دریافت لینک فعال‌سازی", exact: true })).toBeVisible();
+  await expect(page.getByLabel("رمز عبور", { exact: true })).toHaveCount(0);
+  expect(calls.filter((call) => call.path === "/pilot/config")).toHaveLength(2);
+  expect(calls.some((call) => call.path === "/auth/register")).toBe(false);
+});
+
+for (const route of ["login", "matches"])
+  test(`failed initial session on ${route} recovers on explicit retry`, async ({ page }) => {
+    let failed = true;
+    const calls = await fixture(page, {
+      "/auth/me": () => failed ? { status: 503, data: { detail: "temporarily unavailable" } } : owner,
+    });
+    await page.goto(`/dashboard/index_dashboard.html#${route}`);
+    await expect(page.getByRole("heading", { name: "دریافت اطلاعات انجام نشد" })).toBeVisible();
+    await expect(page.locator("form")).toHaveCount(0);
+    failed = false;
+    await page.getByRole("button", { name: "تلاش دوباره" }).click();
+    await expect(page.getByRole("heading", {
+      name: route === "login" ? "خوش برگشتی" : "همراه‌های پیشنهادی", exact: true,
+    })).toBeVisible();
+    expect(calls.filter((call) => call.path === "/auth/me")).toHaveLength(2);
+  });
+
+for (const password of ["old-pass", "existing-password-".repeat(9)])
+  test(`login accepts existing passwords of length ${password.length}`, async ({ page }) => {
+    const calls = await fixture(page, { "/auth/login": () => owner });
+    await page.goto("/dashboard/index_dashboard.html#login");
+    await page.getByLabel("ایمیل", { exact: true }).fill(owner.email);
+    await page.getByLabel("رمز عبور", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "ورود به حساب", exact: true }).click();
+    await expect(page.locator("aside")).toBeVisible();
+    expect(calls.find((call) => call.path === "/auth/login").body).toEqual({ email: owner.email, password });
+  });
+
 test("password registration opens dashboard without requesting email", async ({ page }) => {
   const calls = await fixture(page);
   await page.goto("/dashboard/index_dashboard.html#register");

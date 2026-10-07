@@ -106,11 +106,13 @@ def password_registration_payload(**changes):
 def test_password_registration_needs_no_roster_or_email_and_can_login(security_site, monkeypatch):
     client, factory = security_site
     monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
-    payload = password_registration_payload()
+    payload = password_registration_payload(name="  دانشجوی آزمایشی  ", class_name=" مهندسی ")
     assert client.post("/auth/register", json=payload).status_code == 403
     result = client.post("/auth/register", json=payload, headers=csrf(client))
     assert result.status_code == 201, result.text
     assert result.json()["student_id"] == "123456"
+    assert result.json()["name"] == "دانشجوی آزمایشی"
+    assert result.json()["class_name"] == "مهندسی"
     assert result.json()["email_verified"] is False
     assert result.json()["eligibility"] == {"status": "eligible", "pool": "male", "cycle": config.ACTIVE_CYCLE}
     assert client.get("/auth/me").json()["id"] == result.json()["id"]
@@ -138,13 +140,28 @@ def test_password_registration_does_not_replace_existing_accounts(security_site,
         assert db.scalar(select(Enrollment.id)) is None
 
 
-@pytest.mark.parametrize("change", [{"role": "admin"}, {"password": "short"}, {"gender": "other"}])
+@pytest.mark.parametrize("change", [
+    {"role": "admin"}, {"password": "short"}, {"gender": "other"},
+    {"name": " a "}, {"student_id": " ۱ "}, {"class_name": "   "}, {"name": None},
+])
 def test_password_registration_validates_credentials_and_pool(security_site, monkeypatch, change):
     client, factory = security_site
     monkeypatch.setattr(config, "REQUIRE_EMAIL_VERIFICATION", False)
     assert client.post("/auth/register", json=password_registration_payload(**change), headers=csrf(client)).status_code == 422
     with factory() as db:
         assert len(list(db.scalars(select(User)))) == 3
+
+
+@pytest.mark.parametrize("password", ["old-pass", "existing-password-" * 9])
+def test_login_preserves_existing_credential_lengths(security_site, password):
+    client, factory = security_site
+    with factory() as db:
+        user = db.scalar(select(User).where(User.email == "student@example.org"))
+        user.password_hash = security.hash_password(password)
+        db.commit()
+    result = client.post("/auth/login", json={"email": "student@example.org", "password": password}, headers=csrf(client))
+    assert result.status_code == 200
+    assert client.get("/auth/me").json()["id"] == result.json()["id"]
 
 
 def test_disabled_email_auth_rejects_links_and_cancels_queued_mail(security_site, monkeypatch):

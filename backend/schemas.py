@@ -20,13 +20,10 @@ class UserBase(BaseModel):
     def normalize_email(cls, value: EmailStr) -> str:
         return str(value).strip().lower()
 
-    @field_validator("name", "class_name", "student_id")
+    @field_validator("name", "class_name", "student_id", mode="before")
     @classmethod
     def strip_text(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("value cannot be empty")
-        return value
+        return value.strip() if isinstance(value, str) else value
 
 
 class UserCreate(UserBase):

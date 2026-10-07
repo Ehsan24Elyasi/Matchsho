@@ -25,8 +25,7 @@ import {
 import { adminPage } from "./features/admin.js";
 const admin = document.body.dataset.mode === "admin";
 let config = {},
-  initialized = false,
-  initialError = null;
+  initialized = false;
 const studentNav = [
   ["home", "⌂", "خانهٔ من"],
   ["matches", "◇", "همراه‌های پیشنهادی"],
@@ -171,21 +170,16 @@ const router = createRouter(async (route) => {
         session.load(),
         api("/pilot/config"),
       ]);
-      initialized = true;
-      if (outcomes[1].status === "fulfilled") config = outcomes[1].value;
+      if (outcomes[1].status === "rejected") throw outcomes[1].reason;
       if (
         outcomes[0].status === "rejected" &&
         outcomes[0].reason.status !== 401
       )
-        initialError = outcomes[0].reason;
+        throw outcomes[0].reason;
+      config = outcomes[1].value;
+      initialized = true;
     }
     if (!route.isCurrent()) return;
-    if (initialError && !publicPage) {
-      const err = initialError;
-      initialError = null;
-      initialized = false;
-      throw err;
-    }
     if (!publicPage && !session.user) {
       router.navigate("login");
       return;

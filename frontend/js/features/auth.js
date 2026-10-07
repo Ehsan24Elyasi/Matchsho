@@ -79,8 +79,8 @@ export function authPage(ctx) {
       field(mode === "login" || directRegister ? "رمز عبور" : "رمز عبور جدید", "password", {
         type: "password",
         required: true,
-        minlength: 12,
-        maxlength: 128,
+        minlength: mode === "login" ? 1 : 12,
+        maxlength: mode === "login" ? 256 : 128,
         autocomplete: mode === "login" ? "current-password" : "new-password",
         dir: "ltr",
         hint:
